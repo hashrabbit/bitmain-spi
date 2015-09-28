@@ -135,7 +135,7 @@ void spi_init(void)
 	//interrupt rx full
 	iowrite32((31<<8) | (31), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_XFERLEVEL);
 	#if SPI_USE_INTERRUPT
-	spi_dev.irq = 141;
+	spi_dev.irq = 125 + NR_IRQS_LEGACY;
 	if (ret = request_irq(spi_dev.irq, mspi_interrupt, IRQF_TRIGGER_LOW, "mspi", (void*)&spi_dev)) {
 		printk(KERN_ERR
 			"mspi: Failed req IRQ %d, error{%d}\n", spi_dev.irq, ret);

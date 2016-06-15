@@ -1,36 +1,28 @@
-# Makefile for bitmain_asic_spi_drv
+# Makefile for bitmain-spi
+#
+# Copyright (C) 2016 HashRabbit, Inc. - https://hashrabbit.co
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
 
-TARGET = bitmain_spi
+KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
 
-OBJECT = bitmain-asic-drv.o sha2.o spi.o fpga.o
+KERNEL_MAKE_OPTS += -C $(KERNEL_DIR) \
+	ARCH="$(ARCH)" \
+	CROSS_COMPILE="$(CROSS_COMPILE)" \
+	INSTALL_MOD_PATH="$(DESTDIR)" \
+	M="$(CURDIR)"
 
-EXTRA_CFLAGS += $(BOARD_TYPE)
+build:
+	make $(KERNEL_MAKE_OPTS) modules
 
-ifneq ($(KERNELRELEASE),)
+install: modules_install
 
-#kbuild syntax.
+modules_install:
+	make $(KERNEL_MAKE_OPTS) modules_install
 
-#obj-$(CONFIG_BITMAIN_ASIC_SPI) += $(TARGET).o
-obj-m += $(TARGET).o
-
-$(TARGET)-objs := $(OBJECT)
-
-else
-
-PWD := $(shell pwd)
-
-#KERNEL_DIR := /lib/modules/`uname -r`/build
-
-KERNEL_DIR := /home/xxl/AM335x/kernel/kernel
-
-all : modules
-
-modules:
-	$(MAKE) -C $(KDIR) M=$(PWD) ARCH=$(ARCH)  modules
-	#cp -rf $(TARGET).ko /tftpboot/
 clean:
+	make $(KERNEL_MAKE_OPTS) clean
 
-	rm -rf .*.cmd *.o *.mod.c *.ko .tmp_versions Module.markers modules.order Module.symvers
-
-endif
-
+.PHONY: build install modules_install clean

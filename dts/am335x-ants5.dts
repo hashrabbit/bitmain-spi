@@ -1,0 +1,17 @@
+/*
+ * Copyright (C) 2016 HashRabbit, Inc. - https://hashrabbit.co
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+/dts-v1/;
+
+/include/ "am335x-bitmain.dtsi"
+
+/ {
+  bitmain_spi {
+    model = "Antminer S5";
+    compatible = "bitmain,ants5";
+  };
+};

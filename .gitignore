@@ -12,6 +12,7 @@
 *.a
 *.bin
 *.bz2
+*.dtb
 *.dwo
 *.elf
 *.gcno

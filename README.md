@@ -1,5 +1,12 @@
 # Bitmain SPI driver
 
+## Supported Hardware
+
+* Antminer S5
+* Antminer S7
+
+Other models might be functional but haven't been tested.
+
 ## Building
 
 Build with:

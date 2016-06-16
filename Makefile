@@ -14,15 +14,27 @@ KERNEL_MAKE_OPTS += -C $(KERNEL_DIR) \
 	INSTALL_MOD_PATH="$(DESTDIR)" \
 	M="$(CURDIR)"
 
-build:
+.PHONY: all
+all: modules
+
+.PHONY: modules
+modules:
 	make $(KERNEL_MAKE_OPTS) modules
 
 install: modules_install
 
+.PHONY: install
+install: modules_install firmware_install
+
+.PHONY: modules_install
 modules_install:
 	make $(KERNEL_MAKE_OPTS) modules_install
 
+.PHONY: firmware_install
+firmware_install:
+	mkdir -p $(DESTDIR)/lib/firmware/bitmain
+	cp -a firmware/* $(DESTDIR)/lib/firmware/bitmain/
+
+.PHONY: clean
 clean:
 	make $(KERNEL_MAKE_OPTS) clean
-
-.PHONY: build install modules_install clean

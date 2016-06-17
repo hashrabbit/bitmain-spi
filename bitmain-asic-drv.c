@@ -74,7 +74,7 @@ void ChangePWM(BT_AS_INFO dev, unsigned int pwm_percent);
 
 #define GENERAL_TIMER	(0x94+8*(TIMER_NUM-1))
 #define GENERAL_TIMER_RELOAD	(GENERAL_TIMER + 0x04)
-//AHB Ê±ÖÓ200 MHz
+//AHB æ—¶é’Ÿ200 MHz
 #define	TIME_40MS			(40*200*1000)
 
 //extern struct file_operations *bitmain_fops_p;
@@ -242,7 +242,7 @@ int cmd_check(uint8_t *data)//OK 1; failure 0
 		printk("Tx token err {%#x}\n", bt->token_type);
 		return 0;
 	}
-	if(crc == (r_crc=CRC16(data, length)))//length È¥³ıÁËtypeºÍlength
+	if(crc == (r_crc=CRC16(data, length)))//length å»é™¤äº†typeå’Œlength
 	{
 		//rintf("OK: crc{%#x}r_crc{%#x}\n", crc, r_crc);
 		return 1;
@@ -319,10 +319,10 @@ const char g_full_data[] = { "0000000258007a06037bb0c899e253afc369f10c9e7762a8aa
 						"000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000"
 					   };
 #if 0
-//midstate dataÏòĞ¾Æ¬·¢ËÍ²»ĞèÒª·´
-const char g_midstate[] = {"2e26c4440504a801393d373204e87cc02828ba7fd6f191add1b0ff01a9302ac0"};//ĞèÒª·´Ğò (ÏÖÔÚ×ó²àÎª¸ßÎ»£¬ÓÒ²àÎªµÍÎ» )
+//midstate dataå‘èŠ¯ç‰‡å‘é€ä¸éœ€è¦å
+const char g_midstate[] = {"2e26c4440504a801393d373204e87cc02828ba7fd6f191add1b0ff01a9302ac0"};//éœ€è¦ååº (ç°åœ¨å·¦ä¾§ä¸ºé«˜ä½ï¼Œå³ä¾§ä¸ºä½ä½ )
 const char g_data[] = {"f2db7219baf30152975d4f81"};
-//asic return 35 91 31 ae·´Ğò±È½Ï
+//asic return 35 91 31 aeååºæ¯”è¾ƒ
 const char g_nonce[] = {"359131ae"};
 #else
 const char g_midstate[] = {"4679ba4ec99876bf4bfe086082b400254df6c356451471139a3afa71e48f544a"};
@@ -336,7 +336,7 @@ const char g_full_data[] = { "0000000258007a06037bb0c899e253afc369f10c9e7762a8aa
 						"ae319135"
 						"000000800000000000000000000000000000000000000000000000000000000000000000000000000000000080020000"
 					   };
-const char g_midstate[] = {"9a91ac02214239593aadae3e0e1ce8c6c8a7509542148383653981d2698b67c1"};//ĞèÒª·´Ğò (ÏÖÔÚ×ó²àÎª¸ßÎ»£¬ÓÒ²àÎªµÍÎ» )
+const char g_midstate[] = {"9a91ac02214239593aadae3e0e1ce8c6c8a7509542148383653981d2698b67c1"};//éœ€è¦ååº (ç°åœ¨å·¦ä¾§ä¸ºé«˜ä½ï¼Œå³ä¾§ä¸ºä½ä½ )
 const char g_data[] = {"29a4001a4edce351072fb87f"};
 const char g_nonce[] = {"92ec9b6e"};
 #endif
@@ -723,7 +723,7 @@ static int bitmain_asic_open(struct inode *inode, struct file *file)
 	dev->asic_configure.timeout_data = 7;
 	ChangePWM(dev, 0);
 	//bitmain_set_voltage(dev, 0x0750);
-	dev->last_nonce_timeout = 0; //ÍÚ¿óÊ±»áÏìÒ»ÏÂ
+	dev->last_nonce_timeout = 0; //æŒ–çŸ¿æ—¶ä¼šå“ä¸€ä¸‹
 	//detect_chain_num(dev);
 	dev->send_to_fpga_work_wq = create_singlethread_workqueue(DRV_NAME);
 	INIT_WORK(&dev->send_to_fpga_work, send_to_pfga_work);
@@ -841,7 +841,7 @@ void check_chain_power(BT_AS_INFO dev)
 		//printk("time_elasp_jiffies{%ld}\n", jiffies - dev->cgminer_start_time);
 		//printk("jiffies{%ld}dev->cgminer_start_time{%ld}", jiffies, dev->cgminer_start_time);
 		//printk("time_elasp_ms =%ldms dev->total_nonce_num{%ld}\n", time_elasp_ms, dev->total_nonce_num);
-		//bgNonce_average = ((uint32_t)dev->total_nonce_num / (time_elasp_ms / 1000)) * (CHAIN_POWER_TIME_INTERAL*60);//Æ½¾ù5·ÖÖÓ
+		//bgNonce_average = ((uint32_t)dev->total_nonce_num / (time_elasp_ms / 1000)) * (CHAIN_POWER_TIME_INTERAL*60);//å¹³å‡5åˆ†é’Ÿ
 		if(dev->asic_status_data.chain_num !=0 )
 			bgNonce_average = (uint32_t)dev->total_nonce_num/dev->asic_status_data.chain_num;
 		else
@@ -855,7 +855,7 @@ void check_chain_power(BT_AS_INFO dev)
 		}
 		else
 		{
-			bgNonce_average = bgNonce_average / (time_elasp_ms / (1000 * CHAIN_POWER_TIME_INTERAL*60));//Æ½¾ù5·ÖÖÓ
+			bgNonce_average = bgNonce_average / (time_elasp_ms / (1000 * CHAIN_POWER_TIME_INTERAL*60));//å¹³å‡5åˆ†é’Ÿ
 			bgNonce_average /= 8;
 		}
 		for (i = 0; i < dev->asic_status_data.chain_num; i++)
@@ -917,7 +917,7 @@ void check_chain_power(BT_AS_INFO dev)
 					cmd_buf[2] = 0x1f; //8-13
 					cmd_buf[0] |= 0x80;
 					//cmd_buf[3] = CRC5(cmd_buf, 4*8 - 5);
-					cmd_buf[3] = 0x00; //¹ÊÒâ´íÎócrc Ö»ÊÇĞŞ¸Äfpga ²¨ÌØÂÊ
+					cmd_buf[3] = 0x00; //æ•…æ„é”™è¯¯crc åªæ˜¯ä¿®æ”¹fpga æ³¢ç‰¹ç‡
 					send_BC_to_fpga(i, cmd_buf);
 
 					rst_hash_asic(dev);
@@ -1008,13 +1008,13 @@ void check_asic_status(BT_AS_INFO dev)
 
 }
 
-#define LOW_PWM_PERCENT		20	//10¡¢40
-#define TEMP_INTERVAL	2	//ÎÂ¶È±ä»¯¶àÉÙ µ÷Õû PWM
-//60¶È¶ÔÓ¦100£¬35¶È¶ÔÓ¦0°É, Êµ¼ÊÎª3£»
+#define LOW_PWM_PERCENT		20	//10ã€40
+#define TEMP_INTERVAL	2	//æ¸©åº¦å˜åŒ–å¤šå°‘ è°ƒæ•´ PWM
+//60åº¦å¯¹åº”100ï¼Œ35åº¦å¯¹åº”0å§, å®é™…ä¸º3ï¼›
 #define PWM_ADJUST_FACTOR	((100 - LOW_PWM_PERCENT)/(60-35))
 
-//#define PWM_SCALE	1250		//25M=40ns		20KHz ÖÜÆÚ
-#define PWM_SCALE	50		//1M=1us		20KHz ÖÜÆÚ
+//#define PWM_SCALE	1250		//25M=40ns		20KHz å‘¨æœŸ
+#define PWM_SCALE	50		//1M=1us		20KHz å‘¨æœŸ
 //#define PWM_ADJ_SCALE	(12/10) // 1 normal
 #define PWM_ADJ_SCALE	9/10 // 1 normal
 
@@ -1037,7 +1037,7 @@ void ChangePWM(BT_AS_INFO dev, unsigned int pwm_percent)
 	if(pwm_percent < LOW_PWM_PERCENT)
    		pwm_percent = LOW_PWM_PERCENT;
 	//printk("pwm_percent{%d}\n", pwm_percent);
-	dev->pwm_high_value = pwm_percent * PWM_SCALE/100; //°Ù·Ö±È
+	dev->pwm_high_value = pwm_percent * PWM_SCALE/100; //ç™¾åˆ†æ¯”
 	dev->pwm_low_value = (100 - pwm_percent) * PWM_SCALE/100;
 }
 
@@ -1148,15 +1148,15 @@ void init_beep(BT_AS_INFO dev)
 	dev->beep_status = false;
 }
 /**********************************
-1-200HzÉùÒôºÜĞ¡
-200-300ÓĞÉùÒô
-400à½
-500µÎ
-600Òôµ÷±ä¸ß
-700Òôµ÷±ä¸ß
-800Òôµ÷±ä¸ß
-2730HzÊÊºÏ×öµÎµÄÒ»Éù
-3000×îØİ¶ú,ÉùÒô´ó
+1-200Hzå£°éŸ³å¾ˆå°
+200-300æœ‰å£°éŸ³
+400å˜Ÿ
+500æ»´
+600éŸ³è°ƒå˜é«˜
+700éŸ³è°ƒå˜é«˜
+800éŸ³è°ƒå˜é«˜
+2730Hzé€‚åˆåšæ»´çš„ä¸€å£°
+3000æœ€å‰Œè€³,å£°éŸ³å¤§
 ***********************************/
 void beep(BT_AS_INFO dev)
 {
@@ -1190,7 +1190,7 @@ void beep(BT_AS_INFO dev)
 	return;
 }
 #else
-/*ÓĞÔ´*/
+/*æœ‰æº*/
 //beep gpio0_20
 void init_beep(BT_AS_INFO dev)
 {
@@ -1442,7 +1442,7 @@ enum CHAIN_STATE check_chain_state(BT_AS_INFO dev)
 		//printk("time_elasp_jiffies{%ld}\n", jiffies - dev->cgminer_start_time);
 		//printk("jiffies{%ld}dev->cgminer_start_time{%ld}", jiffies, dev->cgminer_start_time);
 		//printk("time_elasp_ms =%ldms dev->total_nonce_num{%ld}\n", time_elasp_ms, dev->total_nonce_num);
-		//bgNonce_average = ((uint32_t)dev->total_nonce_num / (time_elasp_ms / 1000)) * (CHAIN_POWER_TIME_INTERAL*60);//Æ½¾ù5·ÖÖÓ
+		//bgNonce_average = ((uint32_t)dev->total_nonce_num / (time_elasp_ms / 1000)) * (CHAIN_POWER_TIME_INTERAL*60);//å¹³å‡5åˆ†é’Ÿ
 
 		if((time_elasp_ms / (1000 * CHAIN_POWER_TIME_INTERAL*60)) == 0)
 		{
@@ -1477,7 +1477,7 @@ enum CHAIN_STATE check_chain_state(BT_AS_INFO dev)
 
 enum CHAIN_STATE check_no_nonce_to(BT_AS_INFO dev)
 {
-	if(time_after(jiffies, dev->last_nonce_timeout + 60 * 1000 * HZ/1000))// 1 ·ÖÖÓ
+	if(time_after(jiffies, dev->last_nonce_timeout + 60 * 1000 * HZ/1000))// 1 åˆ†é’Ÿ
 	{
 		return CHAIN_NO_NONCE_TO;
 	}
@@ -1544,7 +1544,7 @@ void reset_chain(BT_AS_INFO dev)
     cmd_buf[2] = 0x1f; //8-13
     cmd_buf[0] |= 0x80;
     //cmd_buf[3] = CRC5(cmd_buf, 4*8 - 5);
-    cmd_buf[3] = 0x00; //¹ÊÒâ´íÎócrc Ö»ÊÇĞŞ¸Äfpga ²¨ÌØÂÊ
+    cmd_buf[3] = 0x00; //æ•…æ„é”™è¯¯crc åªæ˜¯ä¿®æ”¹fpga æ³¢ç‰¹ç‡
     send_BC_to_fpga(i, cmd_buf);
 
     rst_hash_asic(dev);
@@ -1584,7 +1584,7 @@ void led_action(BT_AS_INFO dev ,int led, bool if_blink)
 
 	if(time_after(jiffies, blink_timeout))
 	{
-		blink_timeout = jiffies + 1 * 1000 * HZ/1000; //1ÃëÖÓºó³¬Ê±
+		blink_timeout = jiffies + 1 * 1000 * HZ/1000; //1ç§’é’Ÿåè¶…æ—¶
 
 		switch (led)
 		{
@@ -1659,11 +1659,11 @@ void do_send_work(BT_AS_INFO dev)
 			if(work_num++ == g_TOTAL_FPGA_FIFO*4/48)
 				break;
 			//--g_FPGA_FIFO_SPACE; in send update g_FPGA_FIFO_SPACE
-			if(ret == -1)//Ö»ÔÚquery³önonce
+			if(ret == -1)//åªåœ¨queryå‡ºnonce
 			{
 				g_FPGA_FIFO_SPACE--;
 				ret = 5;
-				if((work_num%(g_FPGA_RESERVE_FIFO_SPACE<<1)) == 0)//Ã¿Â·4¸öworkÊ±£¬È¡Ò»´Înonce
+				if((work_num%(g_FPGA_RESERVE_FIFO_SPACE<<1)) == 0)//æ¯è·¯4ä¸ªworkæ—¶ï¼Œå–ä¸€æ¬¡nonce
 					nonce_query(dev);
 			}
 		}
@@ -1791,7 +1791,7 @@ void step(BT_AS_INFO dev)
 	if(check_status_timeout == 0)
 	{
 		check_chain_power_timeout = jiffies +  90 * 1000 * HZ/1000;
-		check_status_timeout = jiffies + 10 * HZ/1000; //10msºó³¬Ê±
+		check_status_timeout = jiffies + 10 * HZ/1000; //10msåè¶…æ—¶
 		fifo_empty_timeout = jiffies +  120 * 1000 * HZ/1000;
 	}
 
@@ -1863,7 +1863,7 @@ void step(BT_AS_INFO dev)
 					#ifdef S5_S_VL
 					if(time_after(jiffies, check_chain_power_timeout))
 					{
-						check_chain_power_timeout = jiffies + CHAIN_POWER_TIME_INTERAL * 60 * 1000 * HZ/1000; //60ÃëÖÓºó³¬Ê±
+						check_chain_power_timeout = jiffies + CHAIN_POWER_TIME_INTERAL * 60 * 1000 * HZ/1000; //60ç§’é’Ÿåè¶…æ—¶
 						chain_state = check_chain_state(dev);
 						if (chain_state == CHAIN_ERROR && chain_once_reset == false)
 						{
@@ -1910,7 +1910,7 @@ void send_to_pfga_work(struct work_struct *work)
 
 	if(time_after(jiffies, check_asic_status_timeout))
 	{
-		check_asic_status_timeout = jiffies + 60 * 1000 * HZ/1000; //60ÃëÖÓºó³¬Ê±
+		check_asic_status_timeout = jiffies + 60 * 1000 * HZ/1000; //60ç§’é’Ÿåè¶…æ—¶
 		check_asic_status(dev);
     }
 
@@ -2054,7 +2054,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				}
 				#endif
 
-				if ((timer_pending(&prnt_timer) == 0) || (dev->new_block == true))//²»´æÔÚ
+				if ((timer_pending(&prnt_timer) == 0) || (dev->new_block == true))//ä¸å­˜åœ¨
 				{
 					//printk(KERN_ERR "start timer\n");
 					mod_timer(&prnt_timer, jiffies + 1*HZ/1000); //Start Timer 1ms
@@ -2097,7 +2097,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				}
 				if (bt_conf->voltage_eft)
 				{
-					dev->asic_configure.voltage = htons(bt_conf->voltage); //voltage ĞèĞŞ¸ÄÎª16bit
+					dev->asic_configure.voltage = htons(bt_conf->voltage); //voltage éœ€ä¿®æ”¹ä¸º16bit
 					if(dev->asic_configure.voltage < 0x0600)
 						dev->asic_configure.voltage = 0x0600;
 					else if(dev->asic_configure.voltage > 0x0900)
@@ -2124,7 +2124,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					reg_addr = dev->asic_configure.reg_address;
 					dev->asic_configure.reg_address = 0x0;
 					dev->asic_configure.reg_address = reg_addr;
-					if (dev->asic_configure.reg_address == 0x04)//ÆµÂÊ¼Ä´æÆ÷µØÖ·
+					if (dev->asic_configure.reg_address == 0x04)//é¢‘ç‡å¯„å­˜å™¨åœ°å€
 					{
 						dev->asic_configure.freq_vlaue = bt_conf->reg_data;
 						#if defined BM1385
@@ -2143,7 +2143,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					dev->asic_configure.reg_address = reg_addr;
 					#endif
 				}
-				//ÏÈÆµÂÊÔÙÉèÖÃtimeout
+				//å…ˆé¢‘ç‡å†è®¾ç½®timeout
 				if (bt_conf->timeout_eft)
 				{
 					dev->asic_configure.timeout_data = bt_conf->timeout_data;
@@ -2251,7 +2251,7 @@ static int create_rx_status_struct(struct BITMAIN_STATUS_DATA *rx_status_data, b
 	//printk("rx_status_data->chain_num{%d}\n", rx_status_data->chain_num);
 	for (i = 0; i < rx_status_data->chain_num; i++)
     {
-		#if 0 //S2  FPGA pin debug Ìí¼Ó
+		#if 0 //S2  FPGA pin debug æ·»åŠ 
 		if(gChain_Asic_num[dev->chain_map[i]] == 0)
 			continue;
 		#endif
@@ -2296,7 +2296,7 @@ static int create_rx_status_struct(struct BITMAIN_STATUS_DATA *rx_status_data, b
 			pos++;
 		}
     }
-    rx_status_data->length = pos + 2 - 4;//¼Ócrc Á½¸ö×Ö½ÚÈ¥³ıÇ°ËÄ¸ö×Ö½Ú
+    rx_status_data->length = pos + 2 - 4;//åŠ crc ä¸¤ä¸ªå­—èŠ‚å»é™¤å‰å››ä¸ªå­—èŠ‚
     crc16 = CRC16((const uint8_t*)rx_status_data, pos);
     *((char*) rx_status_data + pos) = crc16 & 0xff;
     *((char*) rx_status_data + pos + 1) = (char) (crc16 >> 8);
@@ -2347,14 +2347,14 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
         {
             fifo_space = dev->task_buffer_rd - dev->task_buffer_wr;
         }
-        //·ÀÖ¹full£¬Ô¤ÁôÎ»ÖÃ£¬´æ´¢ÒÑ·¢ËÍµÄÉÏ¼¸¸öÊı¾İ
+        //é˜²æ­¢fullï¼Œé¢„ç•™ä½ç½®ï¼Œå­˜å‚¨å·²å‘é€çš„ä¸Šå‡ ä¸ªæ•°æ®
         if (fifo_space >= TASK_PRE_LEFT)
             fifo_space -= TASK_PRE_LEFT;
         else
             fifo_space = 0;
     }
     //dev->get_status = true;
-    if ((asic_result_full || (asic_result_rd != asic_result_wr))/* && ((T4CON & 0x8000) != 0)*/)//ÕıÔÚtask work
+    if ((asic_result_full || (asic_result_rd != asic_result_wr))/* && ((T4CON & 0x8000) != 0)*/)//æ­£åœ¨task work
     {
         struct BITMAIN_RESULT bitmain_result;
         uint8_t nonce_num = 0;
@@ -2363,7 +2363,7 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
 		bitmain_result.version = 0x00;
 		bitmain_result.nonce_diff = dev->nonce_diff;
 		bitmain_result.total_nonce_num = dev->total_nonce_num;
-		//bitmain_result.total_nonce_num = dev->diff1_num; //cgminer ²»Í¨¹ınonce diff¼ÆËãÊ±
+		//bitmain_result.total_nonce_num = dev->diff1_num; //cgminer ä¸é€šè¿‡nonce diffè®¡ç®—æ—¶
         do
         {
             memcpy(&bitmain_result.nonce[nonce_num], (void*)&asic_result[asic_result_rd], sizeof (asic_result[0]));
@@ -2372,7 +2372,7 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
             increase_variable_rehead_U16(&asic_result_rd, ASIC_RESULT_NUM);
 			gSubmit_nonce_num++;
         }
-        //while ((asic_result_rd != asic_result_wr) && (nonce_num < 7));//ÎªÁË²»³¬¹ı64×Ö½Ú
+        //while ((asic_result_rd != asic_result_wr) && (nonce_num < 7));//ä¸ºäº†ä¸è¶…è¿‡64å­—èŠ‚
         while ((asic_result_rd != asic_result_wr) && (nonce_num < 128));
         asic_result_full = 0;
 		if(sizeof(bitmain_result.fifo_space) == 1)
@@ -2528,11 +2528,11 @@ static long bitmain_asic_ioctl(struct file *file,
 			iowrite32(ioread32(gpio2_vaddr + GPIO_OE) & (~((0x01<<6) | (0x01<<8))), gpio2_vaddr + GPIO_OE);
 			iowrite32(ioread32(gpio3_vaddr + GPIO_OE)& (~(0x01<<15)), gpio3_vaddr + GPIO_OE);
 			iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
-			// nCONFIG="0"£¬Ê¹FPGA½øÈëÅäÖÃ×´Ì¬
+			// nCONFIG="0"ï¼Œä½¿FPGAè¿›å…¥é…ç½®çŠ¶æ€
 			iowrite32(0x01<<8, gpio2_vaddr + GPIO_CLEARDATAOUT);
 			iowrite32(0x01<<6, gpio2_vaddr + GPIO_CLEARDATAOUT);
 			udelay(5);
-			// ¼ì²ânSTATUS£¬Èç¹ûÎª"0"£¬±íÃ÷FPGAÒÑÏìÓ¦ÅäÖÃÒªÇó£¬¿É¿ªÊ¼½øĞĞÅäÖÃ¡£·ñÔò±¨´í
+			// æ£€æµ‹nSTATUSï¼Œå¦‚æœä¸º"0"ï¼Œè¡¨æ˜FPGAå·²å“åº”é…ç½®è¦æ±‚ï¼Œå¯å¼€å§‹è¿›è¡Œé…ç½®ã€‚å¦åˆ™æŠ¥é”™
 			if ((ioread32(gpio2_vaddr + GPIO_DATAIN) & (0x01 << 10))!= 0)
 			{
 				printk(KERN_ERR "FPGA don't responed config{%#x}\n", ioread32(gpio2_vaddr + GPIO_DATAIN));
@@ -2550,18 +2550,18 @@ static long bitmain_asic_ioctl(struct file *file,
 				fpga_data = data_buffer[j];
 				//printf("fpga_data %#x\n", fpga_data);
 				for (i=0; i<8; i++)
-				{ // DCLK="0"Ê±£¬ÔÚData0ÉÏ·ÅÖÃÊı¾İ£¨LSB first£©
+				{ // DCLK="0"æ—¶ï¼Œåœ¨Data0ä¸Šæ”¾ç½®æ•°æ®ï¼ˆLSB firstï¼‰
 					if(fpga_data&0x01)
 						iowrite32(0x01<<15, gpio3_vaddr + GPIO_SETDATAOUT);
 					else
 						iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
-					// DCLK->"1"£¬Ê¹FPGA¶ÁÈëÊı¾İ
+					// DCLK->"1"ï¼Œä½¿FPGAè¯»å…¥æ•°æ®
 					iowrite32(0x01<<6, gpio2_vaddr + GPIO_SETDATAOUT);
-					fpga_data >>= 1; // ×¼±¸ÏÂÒ»Î»Êı¾İ
+					fpga_data >>= 1; // å‡†å¤‡ä¸‹ä¸€ä½æ•°æ®
 					iowrite32(0x01<<6, gpio2_vaddr + GPIO_CLEARDATAOUT);
 					//if (get_gpio(pnSt) == 0)
 					if ((ioread32(gpio2_vaddr + GPIO_DATAIN) & (0x01 << 10))== 0)
-					{ // ¼ì²ânSTATUS£¬Èç¹ûÎª"0"£¬±íÃ÷FPGAÅäÖÃ³ö´í
+					{ // æ£€æµ‹nSTATUSï¼Œå¦‚æœä¸º"0"ï¼Œè¡¨æ˜FPGAé…ç½®å‡ºé”™
 						printk(KERN_ERR "FPGA config err {%#x}\n", ioread32(gpio2_vaddr + GPIO_DATAIN));
 						nStatus = 0;
 						break;
@@ -2584,7 +2584,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			//ctrl_gpio(pData, false);
 			iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
 			if ((ioread32(gpio2_vaddr + GPIO_DATAIN) & (0x01 << 12)) == 0)
-			{ // ¼ì²ânCONF_Done£¬Èç¹ûÎª"0"£¬±íÃ÷FPGAÅäÖÃÎ´³É¹¦
+			{ // æ£€æµ‹nCONF_Doneï¼Œå¦‚æœä¸º"0"ï¼Œè¡¨æ˜FPGAé…ç½®æœªæˆåŠŸ
 				printk(KERN_ERR "Configure failure\n");
 				nStatus = 0;
 			}
@@ -2654,11 +2654,11 @@ static long bitmain_asic_ioctl(struct file *file,
 			//FPGA_rst high
 			iowrite32(0x01<<28, gpio1_vaddr + GPIO_SETDATAOUT);
 			iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
-			// nCONFIG="0"£¬Ê¹FPGA½øÈëÅäÖÃ×´Ì¬
+			// nCONFIG="0"ï¼Œä½¿FPGAè¿›å…¥é…ç½®çŠ¶æ€
 			iowrite32(0x01<<19, gpio1_vaddr + GPIO_CLEARDATAOUT);
 			iowrite32(0x01<<4, gpio0_vaddr + GPIO_CLEARDATAOUT);
 			udelay(5);
-			// ¼ì²ânSTATUS£¬Èç¹ûÎª"0"£¬±íÃ÷FPGAÒÑÏìÓ¦ÅäÖÃÒªÇó£¬¿É¿ªÊ¼½øĞĞÅäÖÃ¡£·ñÔò±¨´í
+			// æ£€æµ‹nSTATUSï¼Œå¦‚æœä¸º"0"ï¼Œè¡¨æ˜FPGAå·²å“åº”é…ç½®è¦æ±‚ï¼Œå¯å¼€å§‹è¿›è¡Œé…ç½®ã€‚å¦åˆ™æŠ¥é”™
 			if ((ioread32(gpio0_vaddr + GPIO_DATAIN) & (0x01 << 12))!= 0)
 			{
 				printk(KERN_ERR "FPGA don't responed config{%#x}\n", ioread32(gpio0_vaddr + GPIO_DATAIN));
@@ -2676,18 +2676,18 @@ static long bitmain_asic_ioctl(struct file *file,
 				fpga_data = data_buffer[j];
 				//printf("fpga_data %#x\n", fpga_data);
 				for (i=0; i<8; i++)
-				{ // DCLK="0"Ê±£¬ÔÚData0ÉÏ·ÅÖÃÊı¾İ£¨LSB first£©
+				{ // DCLK="0"æ—¶ï¼Œåœ¨Data0ä¸Šæ”¾ç½®æ•°æ®ï¼ˆLSB firstï¼‰
 					if(fpga_data&0x01)
 						iowrite32(0x01<<15, gpio3_vaddr + GPIO_SETDATAOUT);
 					else
 						iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
-					// DCLK->"1"£¬Ê¹FPGA¶ÁÈëÊı¾İ
+					// DCLK->"1"ï¼Œä½¿FPGAè¯»å…¥æ•°æ®
 					iowrite32(0x01<<4, gpio0_vaddr + GPIO_SETDATAOUT);
-					fpga_data >>= 1; // ×¼±¸ÏÂÒ»Î»Êı¾İ
+					fpga_data >>= 1; // å‡†å¤‡ä¸‹ä¸€ä½æ•°æ®
 					iowrite32(0x01<<4, gpio0_vaddr + GPIO_CLEARDATAOUT);
 					//if (get_gpio(pnSt) == 0)
 					if ((ioread32(gpio0_vaddr + GPIO_DATAIN) & (0x01 << 12))== 0)
-					{ // ¼ì²ânSTATUS£¬Èç¹ûÎª"0"£¬±íÃ÷FPGAÅäÖÃ³ö´í
+					{ // æ£€æµ‹nSTATUSï¼Œå¦‚æœä¸º"0"ï¼Œè¡¨æ˜FPGAé…ç½®å‡ºé”™
 						printk(KERN_ERR "FPGA config err {%#x}\n", ioread32(gpio0_vaddr + GPIO_DATAIN));
 						nStatus = 0;
 						break;
@@ -2711,7 +2711,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			//ctrl_gpio(pData, false);
 			iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
 			if ((ioread32(gpio0_vaddr + GPIO_DATAIN) & (0x01 << 7)) == 0)
-			{ // ¼ì²ânCONF_Done£¬Èç¹ûÎª"0"£¬±íÃ÷FPGAÅäÖÃÎ´³É¹¦
+			{ // æ£€æµ‹nCONF_Doneï¼Œå¦‚æœä¸º"0"ï¼Œè¡¨æ˜FPGAé…ç½®æœªæˆåŠŸ
 				printk(KERN_ERR "Configure failure\n");
 				nStatus = 0;
 			}

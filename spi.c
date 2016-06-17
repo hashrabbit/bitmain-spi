@@ -100,15 +100,15 @@ void spi_init(void)
 		}
 	}
 	printk("OMAP2_MCSPI_SYSSTATUS %#x\n", ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_SYSSTATUS));
-	//4��ģʽ��CLK��D0��D1��CS��,��CSʹ��
+	//4针模式（CLK，D0，D1，CS）,即CS使能
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);
 	iowrite32(value32 & (~(0x01 << 1)), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);
-	//��ģʽ
+	//主模式
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);
 	iowrite32(value32 & (~(0x01 << 2)), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);
-	//���õ�ͨ��ģʽ������/����ģʽ
+	//配置单通道模式，发送/接收模式
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);
-	iowrite32(value32 | (0x01 << 0), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);//��ͨ��
+	iowrite32(value32 | (0x01 << 0), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL);//单通道
 	printk("OMAP2_MCSPI_MODULCTRL %#x\n", ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_MODULCTRL));
 	//set dir: clk out, d0 MISO, d1 MOSI
 	//value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_SYST);
@@ -117,16 +117,16 @@ void spi_init(void)
 	//DEP1 transmission IS=d0
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 	iowrite32((value32 & (~(0x01 << 18)) & (~(0x01 << 17))) | (0x01 << 16), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
-	//spi����ʱ������: 1 =2 ��Ƶ1clk����mode1: clkƽʱ�ߣ������ز���
+	//spi总线时钟配置: 1 =2 分频1clk精度mode1: clk平时高，上升沿采样
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 	iowrite32(((((value32 & (~(0x0f << 2))) | (0x01 << 2)) /*& (~(0x03 << 0))*/ & (~(0x01 << 29))) & (~(0x03 << 0)))|(0x01 << 0), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
-	//mcspi�ֳ� 8bit
+	//mcspi字长 8bit
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 	iowrite32(value32 | (0x07 << 7), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
-	//spics ����low ative TCS=0.5
+	//spics 极性low ative TCS=0.5
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 	iowrite32(value32 | (0x00 << 25) | (0x01 << 6), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
-	//ʹ��FIFO Transmit/receive modes
+	//使能FIFO Transmit/receive modes
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 	iowrite32((value32 | (0x03 << 27)) & (~(0x03 << 12)), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 	value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
@@ -238,7 +238,7 @@ int spi_tranfer(uint8_t cmd, uint8_t *tx_data, uint16_t tx_len, uint8_t *rx_data
 			}
 		}
 		local_irq_save(flags);
-		for(i = 0; i < 32; i++)//32�ֽ� FIFO, ���ݳ���52�ֽ�
+		for(i = 0; i < 32; i++)//32字节 FIFO, 数据长度52字节
 		{
 			iowrite32(tx_data[i], spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_TX0);
 			/*
@@ -437,7 +437,7 @@ int spi_tranfer(uint8_t cmd, uint8_t *tx_data, uint16_t tx_len, uint8_t *rx_data
 			spi_dev.rev_len = 0;
 			spi_dev.have_wake_up = false;
 			h_tx_len = tx_len < 32 ? tx_len: tx_len - 32;
-			//ʹ��Transmit and rx FIFO
+			//使能Transmit and rx FIFO
 			value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 			value32 &= ~((0x03<<27) | (0x03<<12));
 			iowrite32(value32 | (0x03 << 27) | (0x00 << 12), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
@@ -449,7 +449,7 @@ int spi_tranfer(uint8_t cmd, uint8_t *tx_data, uint16_t tx_len, uint8_t *rx_data
 			iowrite32(ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_IRQENABLE) | (EOW), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_IRQENABLE);
 			iowrite32(CH_ENA, spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCTRL0);
 			local_irq_save(flags);
-			for(i = 0; i < 32; i++)//32�ֽ� FIFO, ���ݳ���52�ֽ�
+			for(i = 0; i < 32; i++)//32字节 FIFO, 数据长度52字节
 			//for(i = 0; i < h_tx_len; i++)
 			{
 				iowrite32(tx_data[i], spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_TX0);
@@ -527,7 +527,7 @@ int spi_tranfer(uint8_t cmd, uint8_t *tx_data, uint16_t tx_len, uint8_t *rx_data
 							cnt1 = 0;
 						}
 						value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHSTAT0);
-						//���ͽ������
+						//发送接收完成
 						if((value32 & (TXFFE | RXFFE)) == (TXFFE | RXFFE))
 						{
 							spi_dev.p_rx[spi_dev.rev_len++]= ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_RX0);
@@ -570,7 +570,7 @@ int spi_tranfer(uint8_t cmd, uint8_t *tx_data, uint16_t tx_len, uint8_t *rx_data
 		case 0: //to asic cmd
 		default: //tw
 			ret = -1; //don't care return data
-			//ʹ��only Transmit FIFO
+			//使能only Transmit FIFO
 			value32 = ioread32(spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);
 			value32 &= ~((0x03<<27) | (0x03<<12));
 			iowrite32((value32 | (0x01 << 27)) | (0x02 << 12), spi_vaddr + OMAP2_MCSPI_OFFSET + OMAP2_MCSPI_CHCONF0);

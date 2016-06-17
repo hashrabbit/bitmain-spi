@@ -302,7 +302,7 @@ typedef struct __BT_AS_info {
 
 /*****************************************
 version2: using spi interrupt
-version3: s3 nand boot ¼æÈİS2 sd boot harward_version =001
+version3: s3 nand boot å…¼å®¹S2 sd boot harward_version =001
 ******************************************/
 #undef DRIVER_VER
 #define DRIVER_VER 0x03
@@ -310,12 +310,12 @@ version3: s3 nand boot ¼æÈİS2 sd boot harward_version =001
 
 #define S4_Board
 #define AISC_RT_DIFF	0x06 //diff = 2^6 = 64
-//²»¶¨ÒåÊ±£¬ÓÉÓ²¼ş×Ô¶¯ÅĞ¶Ï
-//sd start lcdÎŞµ÷Õû	0x7
-//sd start lcdµ÷Õû		0x0
+//ä¸å®šä¹‰æ—¶ï¼Œç”±ç¡¬ä»¶è‡ªåŠ¨åˆ¤æ–­
+//sd start lcdæ— è°ƒæ•´	0x7
+//sd start lcdè°ƒæ•´		0x0
 //nand flash start 			0x01
-//C1 53 54 green led ²»¼æÈİnand flash 0x02
-//C1.1 ¼æÈİnand flash start 			0x01£¬º¸½ÓÎª0x06
+//C1 53 54 green led ä¸å…¼å®¹nand flash 0x02
+//C1.1 å…¼å®¹nand flash start 			0x01ï¼Œç„Šæ¥ä¸º0x06
 #define FIX_HARDWARE_VER	0x1
 
 #if defined C1_02
@@ -340,7 +340,7 @@ version3: s3 nand boot ¼æÈİS2 sd boot harward_version =001
 #endif
 
 
-//·ÀÖ¹full£¬Ô¤ÁôÎ»ÖÃ£¬´æ´¢ÒÑ·¢ËÍµÄÉÏ¼¸¸öÊı¾İ
+//é˜²æ­¢fullï¼Œé¢„ç•™ä½ç½®ï¼Œå­˜å‚¨å·²å‘é€çš„ä¸Šå‡ ä¸ªæ•°æ®
 //#define TASK_BUFFER_NUMBER	(64*CHAIN_SIZE)
 #define TASK_BUFFER_NUMBER		(2*8192)
 

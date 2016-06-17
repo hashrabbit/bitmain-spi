@@ -77,7 +77,7 @@ typedef struct {
 /*******************************
 Byte0~3	Byte 4	Byte 5	Byte 6	Byte 7
 nonce	Work count	temperature	Reserved	ChainNumber
-ChainNumber的格式如下表所示：
+ChainNumber鐨勬牸寮忓涓嬭〃鎵�绀猴細
 Bit[7] :Nonce indicator:
 0: invalid
 1: valid

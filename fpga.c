@@ -383,13 +383,13 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 		}
 	}
 	dev->asic_configure.bauddiv = bauddiv;
-	cmd_buf[3] = CRC5(gateblk, 4*8 - 5); //\B9\CA\D2\E2\B4\ED\CE\F3crc ֻ\CA\C7\D0޸\C4fpga \B2\A8\CC\D8\C2\CA
+	cmd_buf[3] = CRC5(gateblk, 4*8 - 5); //故意错误crc 只是修改fpga 波特率
 	send_BC_to_fpga(i, cmd_buf);
 	//interruptible_sleep_on_timeout(&timeout_wq, 2 * HZ/1000);//2ms
 	#endif
 	//interruptible_sleep_on_timeout(&timeout_wq, 50 * HZ/1000);//2ms
 	//bitmain_asic_get_status(NULL,dev->chain_map[0], 1, 0, 0x00); //CHIP_ADDR_REG 4	PLL reg
-	// \B4\D3\D0¼\C6\CB\E3getblck\C3\FC\C1\EE
+	// 从新计算getblck命令
 	gateblk[0] = 6;
     	gateblk[1] = 00;//0x10; //16-23
     	gateblk[2] = bauddiv | 0x80; //8-15 gateblk=1
@@ -745,7 +745,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 				continue;
 			work_id = htons(fpga_ret_nonce_q->work_id);
 			data = (work_id>>8) & 0xff;
-			if (((work_id & 0x8000) == 0x8000) && (fpga_ret_nonce_q->nonce != last_nonce) && (fpga_ret_nonce_q->nonce != llast_nonce))//nonce && \B7\C7\CF\E0ͬnonce
+			if (((work_id & 0x8000) == 0x8000) && (fpga_ret_nonce_q->nonce != last_nonce) && (fpga_ret_nonce_q->nonce != llast_nonce))//nonce && 非相同nonce
 			{
 				ret_nonce_num++;
 				gNonce_num ++;
@@ -1160,7 +1160,7 @@ start_dect:
 		printk(KERN_ERR "wait rev\n");
 		while(1)
 		{
-			while(asic_result_status_wr != asic_result_status_rd)//\B4\CB\C1\B4\D3\D0оƬ
+			while(asic_result_status_wr != asic_result_status_rd)//此链有芯片
 			{
 				while(asic_result_status_wr != asic_result_status_rd)
 					asic_addr[addr_pos++] = asic_result_status[asic_result_status_rd++] & 0xff;
@@ -1172,7 +1172,7 @@ start_dect:
 			nonce_query(dev);
 		}
 		*/
-		while(asic_result_status_wr != asic_result_status_rd)//\B4\CB\C1\B4\D3\D0оƬ
+		while(asic_result_status_wr != asic_result_status_rd)//此链有芯片
 		{
 			while(asic_result_status_wr != asic_result_status_rd)
 				asic_addr[addr_pos++] = asic_result_status[asic_result_status_rd++] & 0xff;
@@ -1185,7 +1185,7 @@ start_dect:
 		//remap chain from chain_exist
         if(dev->chain_exist&(0x01 << i))
 			dev->chain_map[chain_remap++] = i;
-		//\B5\F7\D5\FB2^n\B8\F6оƬ
+		//调整2^n个芯片
 calculate_check_bit:
 		j = 0;
         one_cnt = 0;
@@ -1371,7 +1371,7 @@ calculate_check_bit:
 	interruptible_sleep_on_timeout(&timeout_wq, 100 * HZ/1000);//500ms
 	asic_result_status_wr = asic_result_status_rd = 0;
 	nonce_query(dev);
-	while(asic_result_status_wr != asic_result_status_rd)//\B4\CB\C1\B4\D3\D0оƬ
+	while(asic_result_status_wr != asic_result_status_rd)//此链有芯片
 	{
 		asic_result_status_wr = asic_result_status_rd = 0;
 		nonce_query(dev);
@@ -1397,7 +1397,7 @@ void sw_addr(BT_AS_INFO dev)
 	interruptible_sleep_on_timeout(&timeout_wq, 100 * HZ/1000);//500ms
 	asic_result_status_wr = asic_result_status_rd = 0;
 	nonce_query(dev);
-	while(asic_result_status_wr != asic_result_status_rd)//\B4\CB\C1\B4\D3\D0оƬ
+	while(asic_result_status_wr != asic_result_status_rd)//此链有芯片
 	{
 		asic_result_status_wr = asic_result_status_rd = 0;
 		nonce_query(dev);

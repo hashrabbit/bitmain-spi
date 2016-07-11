@@ -13,5 +13,6 @@
   bitmain_spi {
     model = "Antminer S5";
     compatible = "bitmain,ants5";
+    bm,firmware = "spitop_noncerev_ants5.fw";
   };
 };

@@ -8,6 +8,7 @@
 
 #include <asm/io.h>
 #include <asm/uaccess.h>
+
 #include "bitmain-asic.h"
 #include "sha2.h"
 #include "spi.h"
@@ -102,7 +103,7 @@ extern int bitmain_asic_get_status(char* buf, char chain, char mode, char chip_a
 	if (mode)//all
         buf[0] |= 0x80;
     buf[3] = CRC5(buf, 4*8 - 5);
-	printk(KERN_ERR "get chain%d reg%#x\n", chain, reg_addr);
+	printk_ratelimited(KERN_ERR "get chain%d reg%#x\n", chain, reg_addr);
 	send_BC_to_fpga(chain, buf);
     return 4;
 }
@@ -116,7 +117,7 @@ int bitmain_asic_inactive(char* buf, char chain)
 	buf[0] = 5;
 	buf[0] |= 0x80;
 	buf[3] = CRC5(buf, 4*8 - 5);
-	printk(KERN_ERR "chain%d inactive\n", chain);
+	printk_ratelimited(KERN_ERR "chain%d inactive\n", chain);
 	send_BC_to_fpga(chain, buf);
 	return 4;
 }
@@ -153,7 +154,7 @@ void bitmain_set_voltage(BT_AS_INFO dev, unsigned short voltage)
 	buf[2]= (unsigned char )(voltage & 0xff);
 	buf[3] = CRC5(buf, 4*8 - 5);
 	buf[3] |=0xc0;
-	printk(KERN_ERR "set_voltage cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
+	printk_ratelimited(KERN_ERR "set_voltage cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
 		cmd_buf[0], cmd_buf[1], cmd_buf[2], cmd_buf[3]);
 	for(i = 0; (i < sizeof(dev->chain_exist) * 8); i++)
     {
@@ -219,13 +220,13 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
     {
 		if((dev->chain_exist) & (0x01 << i))
 		{
-			printk(KERN_ERR "close chain%d core\n", i);
+			printk_ratelimited(KERN_ERR "close chain%d core\n", i);
 			cmd_buf[0] = 2;
 		    cmd_buf[1] = (freq)&0xff; //16-23
 		    cmd_buf[2] = (freq >> 8)&0xff; //8-15
 		    cmd_buf[0] |= 0x80;
 		    cmd_buf[3] = CRC5(cmd_buf, 4*8 - 5);
-		    printk(KERN_ERR "set_frequency cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
+		    printk_ratelimited(KERN_ERR "set_frequency cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
 				cmd_buf[0], cmd_buf[1], cmd_buf[2], cmd_buf[3]);
 			send_BC_to_fpga(i, cmd_buf);
 			interruptible_sleep_on_timeout(&timeout_wq, 2 * HZ/1000);//2ms
@@ -262,7 +263,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 							nonce_query(dev);
 							if( cnt++ > 100) //100 * 50ms = 5s;
 							{
-								printk(KERN_ERR "close croe timeout1 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
+								printk_ratelimited(KERN_ERR "close croe timeout1 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
 								return;
 								break;
 							}
@@ -289,7 +290,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 					nonce_query(dev);
 					if( cnt++ > 100) //100 * 200ms = 20s;
 					{
-						printk(KERN_ERR "close core timeout2 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
+						printk_ratelimited(KERN_ERR "close core timeout2 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
 						break;
 					}
 				}while(g_FPGA_FIFO_SPACE < (g_TOTAL_FPGA_FIFO * 4/48 - 1));
@@ -308,7 +309,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 	#if 1
     uint32_t reg_data_pll = 0;
 	uint16_t reg_data_pll2 = 0;
-	printk("set freq = %d\n", freq);
+	printk_ratelimited("set freq = %d\n", freq);
     get_plldata(1385,freq,&reg_data_pll,&reg_data_pll2);
     for(i = 0; (i < sizeof(dev->chain_exist) * 8); i++)
     {
@@ -324,7 +325,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 			cmd_buf[3] = (reg_data_pll >> 0) & 0xff;
 			cmd_buf[3] |= CRC5(cmd_buf, 4*8 - 5);
 
-		    printk(KERN_ERR "plldivider1 cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
+		    printk_ratelimited(KERN_ERR "plldivider1 cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
 				cmd_buf[0], cmd_buf[1], cmd_buf[2], cmd_buf[3]);
 			send_BC_to_fpga(i, cmd_buf);
 
@@ -339,7 +340,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 			//memcpy((char *)cmd_buf + 2,&reg_data_pll2,sizeof(reg_data_pll2));	//postdiv data
 			cmd_buf[3] |= CRC5(cmd_buf, 4*8 - 5);
 
-            printk(KERN_ERR "plldivider2 cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
+            printk_ratelimited(KERN_ERR "plldivider2 cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
 				cmd_buf[0], cmd_buf[1], cmd_buf[2], cmd_buf[3]);
 			send_BC_to_fpga(i, cmd_buf);
 
@@ -397,8 +398,8 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 		gateblk[3] = 0x00;
     	gateblk[3] = CRC5(gateblk, 4*8 - 5);
 
-	printk(KERN_ERR "bauddiv %d ",bauddiv);
-	printk(KERN_ERR "gateblk2 %x\n",gateblk[2]);
+	printk_ratelimited(KERN_ERR "bauddiv %d ",bauddiv);
+	printk_ratelimited(KERN_ERR "gateblk2 %x\n",gateblk[2]);
 
 	/**/
 	#if 1
@@ -413,7 +414,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 	//\BF\AAcore
 	memset(asic_work.midstate, 0xff, sizeof(asic_work.midstate));
 	memset(asic_work.data, 0xff, sizeof(asic_work.data));
-	printk(KERN_ERR "open core\n");
+	printk_ratelimited(KERN_ERR "open core\n");
 	for(j = 0; j < /*55*/1; j++)
 	{
 		iowrite32(0x01<<8, gpio2_vaddr + GPIO_SETDATAOUT);
@@ -451,7 +452,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 							nonce_query(dev);
 							if( cnt++ > 100) //100 * 50ms = 5s;
 							{
-								printk(KERN_ERR "open core timeout1 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
+								printk_ratelimited(KERN_ERR "open core timeout1 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
 								//return;
 								break;
 							}
@@ -469,9 +470,9 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 					g_FPGA_FIFO_SPACE--;
 				}
 			}
-			//printk("k = %d\n", k);
+			//printk_ratelimited("k = %d\n", k);
 		}
-		//printk("j = %d\n", j);
+		//printk_ratelimited("j = %d\n", j);
 		iowrite32(0x01<<8, gpio2_vaddr + GPIO_CLEARDATAOUT);
 		//interruptible_sleep_on_timeout(&timeout_wq, 1 * 1000 * HZ/1000);// 2 *1000 = 1s
 		//wait all send to asic
@@ -483,7 +484,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 			nonce_query(dev);
 			if( cnt++ > 100) //100 * 200ms = 20s;
 			{
-				printk(KERN_ERR "open core timeout2 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
+				printk_ratelimited(KERN_ERR "open core timeout2 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
 				return;
 				break;
 			}
@@ -515,7 +516,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 				nonce_query(dev);
 				if( cnt++ > 100) //100 * 50ms = 5s;
 				{
-					printk(KERN_ERR "open core timeout1 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
+					printk_ratelimited(KERN_ERR "open core timeout1 g_FPGA_FIFO_SPACE{%d}\n", g_FPGA_FIFO_SPACE);
 					return;
 					break;
 				}
@@ -523,13 +524,13 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
 		}
 		send_work_to_fpga(false, chain_id, dev, &asic_work);
 		g_FPGA_FIFO_SPACE--;
-		printk("k = %d\n", k);
+		printk_ratelimited("k = %d\n", k);
 	}
 	*/
 
 	dev->wait_timeout = true;
 	dev->asic_configure.timeout_data = save_timeout;
-	//printk(KERN_ERR "FPGA start null work\n");
+	//printk_ratelimited(KERN_ERR "FPGA start null work\n");
 	//interruptible_sleep_on_timeout(&timeout_wq, 40 * 1000 * HZ/1000);
 	#endif
 	#endif
@@ -547,7 +548,7 @@ void set_frequency(BT_AS_INFO dev, unsigned int freq)
     cmd_buf[2] = (freq >> 8)&0xff; //8-15
     cmd_buf[0] |= 0x80;
     cmd_buf[3] = CRC5(cmd_buf, 4*8 - 5);
-    printk(KERN_ERR "set_frequency cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
+    printk_ratelimited(KERN_ERR "set_frequency cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
 		cmd_buf[0], cmd_buf[1], cmd_buf[2], cmd_buf[3]);
     for(i = 0; (i < sizeof(dev->chain_exist) * 8); i++)
     {
@@ -565,7 +566,7 @@ void set_baud(BT_AS_INFO dev, unsigned char bauddiv)
 	init_waitqueue_head(&timeout_wq);
 	if(dev->asic_configure.bauddiv == bauddiv)
 	{
-		 printk(KERN_ERR "baud same don't to change\n");
+		 printk_ratelimited(KERN_ERR "baud same don't to change\n");
 		 return;
 	}
     //bitmain_asic_set_frequency(cmd_buf, 1, freq);
@@ -574,7 +575,7 @@ void set_baud(BT_AS_INFO dev, unsigned char bauddiv)
     cmd_buf[2] = bauddiv & 0x1f; //8-13
     cmd_buf[0] |= 0x80;
     cmd_buf[3] = CRC5(cmd_buf, 4*8 - 5);
-    printk(KERN_ERR "set_baud cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
+    printk_ratelimited(KERN_ERR "set_baud cmd_buf[0]{%#x}cmd_buf[1]{%#x}cmd_buf[2]{%#x}cmd_buf[3]{%#x}\n",
 		cmd_buf[0], cmd_buf[1], cmd_buf[2], cmd_buf[3]);
     for(i = 0; (i < sizeof(dev->chain_exist) * 8); i++)
     {
@@ -612,7 +613,7 @@ void bitmain_sw_addr(BT_AS_INFO dev)
     {
 		chip_addr = 0;
 		chain_nu = dev->chain_map[i];
-		printk(KERN_ERR "sw addr start\n");
+		printk_ratelimited(KERN_ERR "sw addr start\n");
 		bitmain_asic_inactive(cmd_buf, chain_nu);
 		interruptible_sleep_on_timeout(&timeout_wq, 5 * HZ/1000);//5ms
 		if(gChain_Asic_Interval[chain_nu] !=0 )
@@ -636,7 +637,7 @@ extern void rst_hash_asic(BT_AS_INFO dev)
 	#if defined S5 || defined S2 || defined S4_PLUS
 	fpga_query.rst_time = 50;
 	fpga_query.rst_valid = 1;
-	printk(KERN_ERR "soft ctrl rst time\n");
+	printk_ratelimited(KERN_ERR "soft ctrl rst time\n");
 	#else
 	fpga_query.rst_time = 0x55;
 	#endif
@@ -648,11 +649,11 @@ extern void rst_hash_asic(BT_AS_INFO dev)
 	rx_size = sizeof(g_rx_data);
 	spi_tranfer(0x01, (uint8_t*)&fpga_query, sizeof(fpga_query), g_rx_data, &rx_size);
 	/*
-	printk("query send data:");
+	printk_ratelimited("query send data:");
 	dump_hex((uint8_t*)&fpga_query,sizeof(fpga_query));
 	*/
-	//printk(KERN_ERR "query\n");
-	printk(KERN_ERR "reset hash asic\n");
+	//printk_ratelimited(KERN_ERR "query\n");
+	printk_ratelimited(KERN_ERR "reset hash asic\n");
 	return;
 
 }
@@ -674,12 +675,12 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 	static uint32_t chain_hw[16]={0};
 	uint16_t chain_loop = 0;
 	/*
-	printk("return nonce data\n");
+	printk_ratelimited("return nonce data\n");
 	dump_hex(rx_data, rx_len);
 	*/
 	if(rx_data[0] != 0x55)//\CE\DE\C1\AC\BD\D3
 	{
-		printk(KERN_ERR "FPGA return data error\n");
+		printk_ratelimited(KERN_ERR "FPGA return data error\n");
 		return -1;
 	}
 	dev->fpga_version = fpga_ret_q->fpga_version;
@@ -691,7 +692,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 	#else
 	if(fpga_ret_q->fan_index > CHAIN_SIZE)
 	{
-		printk(KERN_ERR "fan_index%d err\n", fpga_ret_q->fan_index);
+		printk_ratelimited(KERN_ERR "fan_index%d err\n", fpga_ret_q->fan_index);
 	}
 	else
 	{
@@ -706,13 +707,13 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 	g_FPGA_FIFO_SPACE = (ntohs(fpga_ret_q->fifo_total) - ntohs(fpga_ret_q->have_bytes)) * 4/ 48;
 	g_TOTAL_FPGA_FIFO = ntohs(fpga_ret_q->fifo_total);
 	fifa_have_work_num = ntohs(fpga_ret_q->have_bytes)*4/48;
-	//printk("have_bytes: %d\n", fpga_ret_q->have_bytes);
-	//printk("chain exist: %x, g_FPGA_FIFO_SPACE %#x\n",dev->chain_exist, g_FPGA_FIFO_SPACE);
-	//printk("total nonce num = %d, snd_to_fpga_work{%d}\n", ret_nonce_num, snd_to_fpga_work);
+	//printk_ratelimited("have_bytes: %d\n", fpga_ret_q->have_bytes);
+	//printk_ratelimited("chain exist: %x, g_FPGA_FIFO_SPACE %#x\n",dev->chain_exist, g_FPGA_FIFO_SPACE);
+	//printk_ratelimited("total nonce num = %d, snd_to_fpga_work{%d}\n", ret_nonce_num, snd_to_fpga_work);
 
 	if(fpga_ret_prnt)
 	{
-		printk("return_nonce:");
+		printk_ratelimited("return_nonce:");
 		dump_hex(rx_data,rx_len);
 	}
 
@@ -730,7 +731,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 		//\B3\F6\B4\ED\B4\A6\C0\ED
 		if(which_array > CHAIN_SIZE)
 		{
-			printk(KERN_ERR "Chain ret err\n");
+			printk_ratelimited(KERN_ERR "Chain ret err\n");
 			continue;
 		}
 		if(fpga_ret_nonce_q->temp_valid)
@@ -753,17 +754,17 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 
 				if(asic_result_full == 1)
 				{
-					printk(KERN_ERR "No sp for ret nonce!!wr{%d}rd{%d}\n",asic_result_wr, asic_result_rd);
+					printk_ratelimited(KERN_ERR "No sp for ret nonce!!wr{%d}rd{%d}\n",asic_result_wr, asic_result_rd);
 					break;
 				}
-				//printk(KERN_ERR "llast_nonce{%x}last_nonce{%x}\n", llast_nonce, last_nonce);
+				//printk_ratelimited(KERN_ERR "llast_nonce{%x}last_nonce{%x}\n", llast_nonce, last_nonce);
 				llast_nonce = last_nonce;
 				last_nonce = fpga_ret_nonce_q->nonce;
 				rev((uint8_t*)&fpga_ret_nonce_q->nonce, 4);
 				//asic_result[asic_result_wr].nonce = fpga_ret_nonce_q->nonce;
 				task_buffer_match = work_id & 0x7fff;
 				/*
-				printk(KERN_ERR "task_buffer_match{%d}work_id{%d}task_buffer_rd{%d}wr{%d}\n", task_buffer_match, dev->task_buffer[task_buffer_match].work_id&0x1f,
+				printk_ratelimited(KERN_ERR "task_buffer_match{%d}work_id{%d}task_buffer_rd{%d}wr{%d}\n", task_buffer_match, dev->task_buffer[task_buffer_match].work_id&0x1f,
 				dev->task_buffer_rd, dev->task_buffer_wr);
 				*/
 				which_asic_nonce = (last_nonce & 0xff) >> (3 + 5 - gChain_Asic_Check_bit[which_array])& 0xff;
@@ -773,9 +774,9 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 				/*
 				data = last_nonce & 0xff;
 				if( data >= 0xe4)
-					printk(KERN_ERR "nonce high byte %#x\n", data);
+					printk_ratelimited(KERN_ERR "nonce high byte %#x\n", data);
 				*/
-				//printk(KERN_ERR "which_array{%d}which_asic_nonce{%d}nonce[%#x]\n", which_array, which_asic_nonce, last_nonce & 0xff);
+				//printk_ratelimited(KERN_ERR "which_array{%d}which_asic_nonce{%d}nonce[%#x]\n", which_array, which_asic_nonce, last_nonce & 0xff);
 				gAsic_cnt[which_array][which_asic_nonce]++;
 				Chain_nonce_nu[which_array]++;
 				if ((dev->hw_error_eft == false) || /**/((ret = hashtest(&dev->task_buffer[task_buffer_match], fpga_ret_nonce_q->nonce)) != 0))
@@ -799,7 +800,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 				{
 					//if((gNonce_Err++ % 100) == 0)
 					gNonce_Err++;
-						printk(KERN_ERR "ch%d-as%d: dev->task_buffer_wr{0x%08x}rd{0x%08x}ret work_id{0x%04x} don't match task_buffer_match{0x%04x} \n",
+						printk_ratelimited(KERN_ERR "ch%d-as%d: dev->task_buffer_wr{0x%08x}rd{0x%08x}ret work_id{0x%04x} don't match task_buffer_match{0x%04x} \n",
 						which_array, which_asic_nonce, dev->task_buffer_wr,dev->task_buffer_rd, work_id, task_buffer_match);
 						if(which_array-1 < 16)
 							chain_hw[which_array-1] ++;
@@ -808,7 +809,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
             else if ((work_id & 0x8000) == 0x0000)//status
             {
                 uint8_t crc_reslut;
-				printk(KERN_ERR "asic cmd return %08x\n", fpga_ret_nonce_q->nonce);
+				printk_ratelimited(KERN_ERR "asic cmd return %08x\n", fpga_ret_nonce_q->nonce);
                 crc_reslut = CRC5((uint8_t*)&fpga_ret_nonce_q->nonce, 5 * 8 - 5);
                 if (crc_reslut == (data & 0x1f))
                 {
@@ -816,7 +817,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
                     asic_result_status[asic_result_status_wr] = fpga_ret_nonce_q->nonce;
                     if (dev->asic_configure.reg_address == 4) //PLL parameter
                     {
-                        printk("Chain%d PLL: {%#x}\n", which_array, asic_result_status[asic_result_status_wr]);
+                        printk_ratelimited("Chain%d PLL: {%#x}\n", which_array, asic_result_status[asic_result_status_wr]);
                     }
                     if (dev->get_status == true)
                     {
@@ -828,25 +829,25 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
                 else
                 {
 					uint8_t *pdata;
-					printk(KERN_ERR "chain%d reg crc_r{%#x}crc{%#x} Err ret{0x%08x}\n", which_array, crc_reslut, data, fpga_ret_nonce_q->nonce);
+					printk_ratelimited(KERN_ERR "chain%d reg crc_r{%#x}crc{%#x} Err ret{0x%08x}\n", which_array, crc_reslut, data, fpga_ret_nonce_q->nonce);
 					gNonce_Err++;
 					#if 1
 					if(fpga_ret_nonce_q->chain_num == 14)
 					{
 						pdata = (uint8_t*)&last_nonce_full;
-						printk(KERN_ERR "last nonce full\n");
+						printk_ratelimited(KERN_ERR "last nonce full\n");
 						for(i = 0; i < sizeof(last_nonce_full); i++)
 						{
-							printk(KERN_ERR "0x%02x ", pdata[i]);
+							printk_ratelimited(KERN_ERR "0x%02x ", pdata[i]);
 						}
-						printk(KERN_ERR "\n");
+						printk_ratelimited(KERN_ERR "\n");
 						pdata = (uint8_t*)&llast_nonce_full;
-						printk(KERN_ERR "llast nonce full\n");
+						printk_ratelimited(KERN_ERR "llast nonce full\n");
 						for(i = 0; i < sizeof(last_nonce_full); i++)
 						{
-							printk(KERN_ERR "0x%02x ", pdata[i]);
+							printk_ratelimited(KERN_ERR "0x%02x ", pdata[i]);
 						}
-						printk(KERN_ERR "\n");
+						printk_ratelimited(KERN_ERR "\n");
 					}
 					#endif
                 }
@@ -866,7 +867,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 			{
 				if( *((uint8_t*)fpga_ret_nonce_q + i) != 0)
 				{
-					printk(KERN_ERR "Nonce invalid but all not zero\n");
+					printk_ratelimited(KERN_ERR "Nonce invalid but all not zero\n");
 					dump_hex((uint8_t*)fpga_ret_q,sizeof(*fpga_ret_q));
 					break;
 				}
@@ -877,8 +878,8 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 	/*
 	if( nonce_num != (dev->fpga_nonce1_num - last_nonce1_num))
 	{
-		printk("nonce_num{%d}last{%#x}dev->fpga_nonce1_num{%#x}\n", nonce_num, last_nonce1_num, dev->fpga_nonce1_num);
-		printk("return_nonce:");
+		printk_ratelimited("nonce_num{%d}last{%#x}dev->fpga_nonce1_num{%#x}\n", nonce_num, last_nonce1_num, dev->fpga_nonce1_num);
+		printk_ratelimited("return_nonce:");
 		dump_hex(rx_data,rx_len);
 	}
 	last_nonce1_num = dev->fpga_nonce1_num;
@@ -886,7 +887,7 @@ int parse_return_nonce(BT_AS_INFO dev, uint8_t *rx_data, uint16_t rx_len)
 	/*
 	if((dev->fpga_nonce1_num != 0) && ((dev->fpga_nonce1_num - (uint32_t)(dev->total_nonce_num&0xffffffff)) > 150))
 	{
-		printk(KERN_ERR "fpga-nc{%d}drv-nc{%ld} = {%ld}\n",dev->fpga_nonce1_num, dev->total_nonce_num, dev->fpga_nonce1_num - (uint32_t)(dev->total_nonce_num &0xffffffff));
+		printk_ratelimited(KERN_ERR "fpga-nc{%d}drv-nc{%ld} = {%ld}\n",dev->fpga_nonce1_num, dev->total_nonce_num, dev->fpga_nonce1_num - (uint32_t)(dev->total_nonce_num &0xffffffff));
 	}
 	*/
 	return nonce_num;
@@ -911,26 +912,26 @@ extern int nonce_query(BT_AS_INFO dev)
 		//toctl = (dev->asic_configure.timeout_data * 1000000/ 40) - 1;
 		toctl = (dev->asic_configure.timeout_data*1000*9/10)  - 1;//1us
 		toctl += (0xffffffff/64/64/dev->asic_configure.frequency % 1000 *9 / 10);
-		printk(KERN_ERR "timeout {%#x}\n", toctl);
+		printk_ratelimited(KERN_ERR "timeout {%#x}\n", toctl);
 		toctl |= (0x01<<31);
 		fpga_query.toctl = htonl(toctl);
-		printk(KERN_ERR "rev timeout {%#x}\n", fpga_query.toctl);
+		printk_ratelimited(KERN_ERR "rev timeout {%#x}\n", fpga_query.toctl);
 		/*
 		uint16_t i;
 		uint8_t *data = (uint8_t *)&fpga_query;
 		for(i = 0; i < sizeof(fpga_query); i++)
 		{
 			if(0 == (i%16))
-				printk(KERN_ERR "\n0x%04x: ", i);
-			printk(KERN_ERR "0x%02x ", data[i]);
+				printk_ratelimited(KERN_ERR "\n0x%04x: ", i);
+			printk_ratelimited(KERN_ERR "0x%02x ", data[i]);
 		}
-		printk(KERN_ERR "\n");
+		printk_ratelimited(KERN_ERR "\n");
 		*/
 	}
 	else
 		fpga_query.toctl = 0;
 	fpga_query.tm = htonl((0x01 << dev->nonce_diff)-1);
-	//printk(KERN_ERR "fpga_query.tm0x%08x ", fpga_query.tm);
+	//printk_ratelimited(KERN_ERR "fpga_query.tm0x%08x ", fpga_query.tm);
 	if(gChain_Asic_num[dev->chain_map[0]] != 0)
 	{
 		//fpga_query.hcn = htonl(0xffffffff/256 * (256/gChain_Asic_num[dev->chain_map[0]]));
@@ -939,10 +940,10 @@ extern int nonce_query(BT_AS_INFO dev)
 	rx_size = sizeof(g_rx_data);
 	spi_tranfer(0x01, (uint8_t*)&fpga_query, sizeof(fpga_query), g_rx_data, &rx_size);
 	/*
-	printk("query send data:");
+	printk_ratelimited("query send data:");
 	dump_hex((uint8_t*)&fpga_query,sizeof(fpga_query));
 	*/
-	//printk(KERN_ERR "query\n");
+	//printk_ratelimited(KERN_ERR "query\n");
 	return parse_return_nonce(dev, g_rx_data, rx_size);
 }
 
@@ -959,7 +960,7 @@ extern int send_work_to_fpga(bool new_block, unsigned char chain_id, BT_AS_INFO 
 	if((time_after(jiffies, open_core_time + dev->asic_configure.timeout_data * 32 * 64 * HZ/1000))
 		&& ( dev->wait_timeout ))//40s
 	{
-		//printk("jiffies{%ld}, open{%ld},dev->wait_timeout{%d}\n",jiffies, open_core_time, dev->wait_timeout);
+		//printk_ratelimited("jiffies{%ld}, open{%ld},dev->wait_timeout{%d}\n",jiffies, open_core_time, dev->wait_timeout);
 		dev->timeout_valid = true;
 		nonce_query(dev);
 		dev->timeout_valid = false;
@@ -971,8 +972,8 @@ extern int send_work_to_fpga(bool new_block, unsigned char chain_id, BT_AS_INFO 
 		if(time_after(jiffies, open_core_time + dev->asic_configure.timeout_data * 32 * 64 * HZ/1000))//40s
 			fpga_work.block_type = NEW_BLOCK;
 		else
-			printk("Sending open core work\n");
-		printk("Send new block cmd\n");
+			printk_ratelimited("Sending open core work\n");
+		printk_ratelimited("Send new block cmd\n");
 		//iowrite32(0x01<<8, gpio2_vaddr + GPIO_CLEARDATAOUT);
 		new_block_flg = true;
 		TO_FPGA_ID = 0;
@@ -1000,9 +1001,9 @@ extern int send_work_to_fpga(bool new_block, unsigned char chain_id, BT_AS_INFO 
 	TO_FPGA_ID +=2;
 	#endif
 	/*
-	printk(KERN_ERR "rd{%d}work_id 0x%08x\n", dev->task_buffer_rd, asic_work->work_id);
+	printk_ratelimited(KERN_ERR "rd{%d}work_id 0x%08x\n", dev->task_buffer_rd, asic_work->work_id);
 	*/
-	//printk("asic_work->midstate:");
+	//printk_ratelimited("asic_work->midstate:");
 	//dump_hex((uint8_t*)asic_work->midstate,sizeof(fpga_work.midstate));
 
 	//fpga_work.work_id = htonl(asic_work->work_id & 0x1f);
@@ -1011,12 +1012,12 @@ extern int send_work_to_fpga(bool new_block, unsigned char chain_id, BT_AS_INFO 
 	//fpga_work.work_id = 0x15 | (0x15 << 24);
 	rx_size = sizeof(g_rx_data);
 	/*
-	printk("send data:");
+	printk_ratelimited("send data:");
 	dump_hex((uint8_t*)&fpga_work,sizeof(fpga_work));
 	*/
 
 
-	//printk("send work\n");
+	//printk_ratelimited("send work\n");
 	if(-1 != spi_tranfer(0x02, (uint8_t*)&fpga_work, sizeof(fpga_work), g_rx_data, &rx_size))
 		ret = parse_return_nonce(dev, g_rx_data, rx_size);
 	else
@@ -1034,7 +1035,7 @@ extern int send_BC_to_fpga(uint8_t chain_num, uint8_t *cmd)
 	asic_cmd.bauddiv = dev->asic_configure.bauddiv;
 	memcpy(&asic_cmd.cmd, cmd, sizeof(asic_cmd.cmd));
 
-	printk("send BC data:");
+	printk_ratelimited("send BC data:");
 	dump_hex((uint8_t*)&asic_cmd,sizeof(asic_cmd));
 	iowrite32(0x01<<6, gpio2_vaddr + GPIO_SETDATAOUT);
 	spi_tranfer(0x00, (uint8_t*)&asic_cmd, sizeof(asic_cmd), g_rx_data, &rx_size);
@@ -1046,7 +1047,7 @@ extern void clear_fpga_nonce_buffer(BT_AS_INFO dev)
 {
 	uint32_t cnt = 0;
 	int ret;
-	printk(KERN_ERR "clear FPGA nonce buffer\n");
+	printk_ratelimited(KERN_ERR "clear FPGA nonce buffer\n");
 	dev->clear_fpga_fifo = true;
 	while(1)
 	{
@@ -1058,13 +1059,13 @@ extern void clear_fpga_nonce_buffer(BT_AS_INFO dev)
 		}
 		else if(ret < 0)
 		{
-			printk(KERN_ERR "FPGA don't code\n");
+			printk_ratelimited(KERN_ERR "FPGA don't code\n");
 			dev->fpga_ok = false;
 			break;
 		}
 		if(cnt++ > 100)
 		{
-			printk(KERN_ERR "clear FPGA nonce buffer err\n");
+			printk_ratelimited(KERN_ERR "clear FPGA nonce buffer err\n");
 			break;
 		}
 	}
@@ -1104,7 +1105,7 @@ extern void detect_chain_num(BT_AS_INFO dev)
 	uint8_t actual_chip_num[CHAIN_SIZE] = {0};
 	struct ASIC_TASK asic_work = {0};
 	#if defined S2
-	printk("S2 reset hash board\n");
+	printk_ratelimited("S2 reset hash board\n");
 	iowrite32(0x01<<7, gpio2_vaddr + GPIO_CLEARDATAOUT);
 	init_waitqueue_head(&timeout_wq);
 	interruptible_sleep_on_timeout(&timeout_wq, 1000 * HZ/1000);//300ms
@@ -1157,7 +1158,7 @@ start_dect:
 		nonce_query(dev);
 		addr_pos = 0;
 		/*
-		printk(KERN_ERR "wait rev\n");
+		printk_ratelimited(KERN_ERR "wait rev\n");
 		while(1)
 		{
 			while(asic_result_status_wr != asic_result_status_rd)//此链有芯片
@@ -1179,7 +1180,7 @@ start_dect:
 			asic_result_status_wr = asic_result_status_rd = 0;
 			nonce_query(dev);
 		}
-		printk(KERN_ERR "chain%d total asic:%d\n", i, addr_pos);
+		printk_ratelimited(KERN_ERR "chain%d total asic:%d\n", i, addr_pos);
 		gChain_Asic_num[i] = addr_pos;
 		actual_chip_num[i] = addr_pos;
 		//remap chain from chain_exist
@@ -1205,7 +1206,7 @@ calculate_check_bit:
         gChain_Asic_Check_bit[i] = j;
         if (one_cnt == 1)
             gChain_Asic_Check_bit[i] -= 1;
-        //printk(KERN_ERR "gChain%d_Asic_Check_bit = %d\n", i, gChain_Asic_Check_bit[i]);
+        //printk_ratelimited(KERN_ERR "gChain%d_Asic_Check_bit = %d\n", i, gChain_Asic_Check_bit[i]);
         for(j = 0; j< 8; j++)
 		{
 			gChain_Asic_status[i][j] = 0;
@@ -1226,7 +1227,7 @@ calculate_check_bit:
 			{
 				addr_interval = asic_addr[j] - asic_addr[j-1];
 				gChain_Asic_num[i] = 0x100/addr_interval;
-				printk("Chain %d modify exist Asic_num[%d]\n", i, gChain_Asic_num[i]);
+				printk_ratelimited("Chain %d modify exist Asic_num[%d]\n", i, gChain_Asic_num[i]);
 				goto calculate_check_bit;
 			}
 			if(actual_chip_num[i] != 0)
@@ -1247,10 +1248,10 @@ calculate_check_bit:
 			}
             gChain_Asic_status[i][n/32] |= (0x1 << n%32);
 			dev->chain_asic_exist[i][n/32] |= (0x1 << n%32);
-            printk(KERN_ERR "pos%d--addr:%02x\n", j, asic_addr[j]);
+            printk_ratelimited(KERN_ERR "pos%d--addr:%02x\n", j, asic_addr[j]);
             n++;
         }
-		printk(KERN_ERR "chain%d_asic_exist{0x%08x}\n", i, dev->chain_asic_exist[i][0]);
+		printk_ratelimited(KERN_ERR "chain%d_asic_exist{0x%08x}\n", i, dev->chain_asic_exist[i][0]);
 	}
 
 	dev->asic_configure.chain_num = chain_remap;
@@ -1260,14 +1261,14 @@ calculate_check_bit:
     {
         gTotal_asic_num += gChain_Asic_num[i];
     }
-	printk(KERN_ERR "total chain_num{%d}\n", dev->asic_status_data.chain_num);
+	printk_ratelimited(KERN_ERR "total chain_num{%d}\n", dev->asic_status_data.chain_num);
 	g_FPGA_RESERVE_FIFO_SPACE = dev->asic_status_data.chain_num * 2;
 	if(gTotal_asic_num == 0)
 	{
-		printk(KERN_ERR "FPGA detect asic addr err\n\n");
+		printk_ratelimited(KERN_ERR "FPGA detect asic addr err\n\n");
 		if(detect_cnt ++ < 3)
 		{
-			printk(KERN_ERR "\n\n!!!!Restart%d detect asic addr!!!\n\n", detect_cnt);
+			printk_ratelimited(KERN_ERR "\n\n!!!!Restart%d detect asic addr!!!\n\n", detect_cnt);
 			goto start_dect;
 		}
 
@@ -1283,7 +1284,7 @@ calculate_check_bit:
 					gChain_Asic_num[dev->chain_map[i]] = 16;
 				#else
 					#ifdef S5
-					printk(KERN_ERR "S5 board\n");
+					printk_ratelimited(KERN_ERR "S5 board\n");
 					if(gChain_Asic_num[dev->chain_map[i]] == 0)
 						gChain_Asic_num[dev->chain_map[i]] = 48;
 					#endif
@@ -1295,7 +1296,7 @@ calculate_check_bit:
 			gChain_Asic_status[dev->chain_map[i]][1] = 0xffffffff;
 			gChain_Asic_Interval[dev->chain_map[i]] = 0x100/gChain_Asic_num[dev->chain_map[i]];
 		}
-		printk(KERN_ERR "\n\n!!!!soft set defult asic num %d!!!\n\n", gChain_Asic_num[0]);
+		printk_ratelimited(KERN_ERR "\n\n!!!!soft set defult asic num %d!!!\n\n", gChain_Asic_num[0]);
 		gTotal_asic_num = gChain_Asic_num[0] * dev->asic_status_data.chain_num;
 		dev->temp_num = dev->asic_status_data.chain_num;
 		dev->fan_num = 6;//CHAIN_SIZE;
@@ -1308,8 +1309,8 @@ calculate_check_bit:
 	{
 		for(i = 0; i < dev->asic_status_data.chain_num; i++)
 		{
-			printk(KERN_ERR "chain%d chain_map %d\n", i, dev->chain_map[i]);
-			printk(KERN_ERR "chain%d asic_num--%d actual--%d\n", i, gChain_Asic_num[dev->chain_map[i]], actual_chip_num[dev->chain_map[i]]);
+			printk_ratelimited(KERN_ERR "chain%d chain_map %d\n", i, dev->chain_map[i]);
+			printk_ratelimited(KERN_ERR "chain%d asic_num--%d actual--%d\n", i, gChain_Asic_num[dev->chain_map[i]], actual_chip_num[dev->chain_map[i]]);
 			gChain_Asic_num[dev->chain_map[i]] = actual_chip_num[dev->chain_map[i]];
 			#ifdef S4_Board
 			if(gChain_Asic_num[dev->chain_map[i]] == 0)
@@ -1327,10 +1328,10 @@ calculate_check_bit:
 			#endif
 			if(gChain_Asic_num[dev->chain_map[i]] !=0 )
 				gChain_Asic_Interval[dev->chain_map[i]] = 0x100/gChain_Asic_num[dev->chain_map[i]];
-			printk(KERN_ERR "chain%d sw addr interval %d\n", i, gChain_Asic_Interval[dev->chain_map[i]]);
+			printk_ratelimited(KERN_ERR "chain%d sw addr interval %d\n", i, gChain_Asic_Interval[dev->chain_map[i]]);
 			if(gChain_Asic_num[dev->chain_map[i]] == 0)
 			{
-				printk(KERN_ERR "chain%d actual 0 addr Adjust\n", i);
+				printk_ratelimited(KERN_ERR "chain%d actual 0 addr Adjust\n", i);
 				if(i != 0)
 				{
 					gChain_Asic_num[dev->chain_map[i]] = gChain_Asic_num[dev->chain_map[i-1]];

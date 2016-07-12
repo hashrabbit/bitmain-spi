@@ -250,7 +250,7 @@ void sha2_update( sha2_context *ctx, const unsigned char *input, int ilen )
                 (void *) input, ilen );
     }
 	/*
-	printk("ctx sha2_update:");
+	printk_ratelimited("ctx sha2_update:");
 	dump_hex((uint8_t*)ctx,sizeof(*ctx));
 	*/
 }
@@ -273,18 +273,18 @@ void sha2_finish( sha2_context *ctx, unsigned char output[32] )
     unsigned char msglen[8];
 	#if 0
 	uint8_t i;
-	printk("ctx->state\n");
+	printk_ratelimited("ctx->state\n");
 	for(i=0; i<sizeof(ctx->state); i++)
 	{
-		printk("{%d}{%#x}, \n", i, *((uint8_t*)ctx->state +i));
+		printk_ratelimited("{%d}{%#x}, \n", i, *((uint8_t*)ctx->state +i));
 	}
-	printk("ctx->buffer\n");
+	printk_ratelimited("ctx->buffer\n");
 	for(i=0; i<sizeof(ctx->buffer); i++)
 	{
-		printk("{%d}{%#x}, \n", i, *((uint8_t*)ctx->buffer+i));
+		printk_ratelimited("{%d}{%#x}, \n", i, *((uint8_t*)ctx->buffer+i));
 	}
 
-	printk("ctx->total[0]{%#x}ctx->total[1]{%#x}\n", ctx->total[0], ctx->total[1]);
+	printk_ratelimited("ctx->total[0]{%#x}ctx->total[1]{%#x}\n", ctx->total[0], ctx->total[1]);
 	#endif
 	high = ( ctx->total[0] >> 29 )
          | ( ctx->total[1] <<  3 );

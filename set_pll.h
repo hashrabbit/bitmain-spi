@@ -1,5 +1,8 @@
 #ifndef __SET_PLL_H__
 #define __SET_PLL_H__
+
+#include <linux/ratelimit.h>
+
 struct freq_pll
 {
 	const char *freq;
@@ -7,6 +10,7 @@ struct freq_pll
 	unsigned int fildiv2;
 	unsigned int vilpll;
 };
+
 static struct freq_pll freq_pll_1385[] = {
 	{"100",0x020040, 0x0420, 0x200241},
 	{"125",0x028040, 0x0420, 0x280241},
@@ -148,21 +152,20 @@ static void get_plldata(int type,int freq,uint32_t * reg_data,uint16_t * reg_dat
 
 	if(i == sizeof(freq_pll_1385)/sizeof(freq_pll_1385[0]))
 	{
-		printk(KERN_ERR "Freq set Err!!!!\n");
-		printk(KERN_ERR "Using 200M\n");
+		printk_ratelimited(KERN_ERR "Freq set Err!!!!\n");
+		printk_ratelimited(KERN_ERR "Using 200M\n");
 		i = 4;
 	}
 
 	sprintf(plldivider1, "%08x", freq_pll_1385[i].fildiv1);
 	sprintf(plldivider2, "%04x", freq_pll_1385[i].fildiv2);
 
-	printk("Freq %s, PLL1 %s, PLL2 %s\n", freq_str, plldivider1, plldivider2);
+	printk_ratelimited("Freq %s, PLL1 %s, PLL2 %s\n", freq_str, plldivider1, plldivider2);
 
 	*reg_data = freq_pll_1385[i].fildiv1;
 	*reg_data2 = freq_pll_1385[i].fildiv2;
 
-	printk(KERN_ERR "PLL1 %#x, PLL2 %#x\n",*reg_data, *reg_data2);
+	printk_ratelimited(KERN_ERR "PLL1 %#x, PLL2 %#x\n",*reg_data, *reg_data2);
 }
-
 
 #endif

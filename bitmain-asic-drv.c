@@ -26,6 +26,7 @@
 #include <linux/delay.h>
 #include <linux/workqueue.h>
 #include <linux/jiffies.h>
+#include <linux/ratelimit.h>
 
 #include <linux/timer.h>
 #include <linux/timex.h>
@@ -239,7 +240,7 @@ int cmd_check(uint8_t *data)//OK 1; failure 0
 	}
 	else
 	{
-		printk("Tx token err {%#x}\n", bt->token_type);
+		printk_ratelimited("Tx token err {%#x}\n", bt->token_type);
 		return 0;
 	}
 	if(crc == (r_crc=CRC16(data, length)))//length 去除了type和length
@@ -249,14 +250,14 @@ int cmd_check(uint8_t *data)//OK 1; failure 0
 	}
 	else
 	{
-		printk("Err:token{%#x} crc{%#x}r_crc{%#x}len{%#x}\n",
+		printk_ratelimited("Err:token{%#x} crc{%#x}r_crc{%#x}len{%#x}\n",
 			bt->token_type, crc, r_crc,length);
 		if(bt->token_type == BM_TX_TASK)
 		{
 			#if HAVE_NUM
-			printk("work_num {%d}\n", bt->work_num);
+			printk_ratelimited("work_num {%d}\n", bt->work_num);
 			#else
-			printk("work_num {%d}\n", (le16_to_cpu(bt->length) - 6)/sizeof(struct ASIC_TASK));
+			printk_ratelimited("work_num {%d}\n", (le16_to_cpu(bt->length) - 6)/sizeof(struct ASIC_TASK));
 			#endif
 		}
 		return 0;
@@ -276,10 +277,10 @@ extern void dump_hex(uint8_t *data, uint16_t len)
 	for(i = 0; i < len; i++)
 	{
 		if(0 == (i%16))
-			printk("\n0x%04x: ", i);
-		printk("0x%02x ", data[i]);
+			printk_ratelimited("\n0x%04x: ", i);
+		printk_ratelimited("0x%02x ", data[i]);
 	}
-	printk("\n");
+	printk_ratelimited("\n");
 }
 
 static __inline void flip80(void *dest_p, const void *src_p)
@@ -356,20 +357,20 @@ static void regen_hash(void)
 	flip80(swap32, data32);
 	sha2(swap, 80, hash1);
 	/*
-	printk("hash1 in regen_hash\n");
+	printk_ratelimited("hash1 in regen_hash\n");
 	dump_hex(hash1,sizeof(hash1));
 	*/
 	sha2(hash1, 32, hash2);
 	flip32(hash1, hash2);
 	if(be32toh(hash2_32[7]) == 0)
-		printk("hash ok\n");
+		printk_ratelimited("hash ok\n");
 	else
-		printk("test hash error\n");
+		printk_ratelimited("test hash error\n");
 }
 
 #define test_DHASH 0
 
-// Returns 1 if meets current buffer work, 0 if last buffer work 
+// Returns 1 if meets current buffer work, 0 if last buffer work
 extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 {
 	BT_AS_INFO dev = &bitmain_asic_dev;
@@ -402,7 +403,7 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 
 	flip32(hash1, hash2);
 	if (hash2_32[7] != 0) {
-		//printk("nonce error\n");
+		//printk_ratelimited("nonce error\n");
 		return 0;
 	}
 	else if( dev->nonce_diff !=0 )
@@ -416,9 +417,9 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 		if(be32toh(hash2_32[6 - dev->asic_configure.diff_sh_bit/32]) < ((uint32_t)0xffffffff >> (dev->asic_configure.diff_sh_bit%32)))
 		//if((hash2_32[6 - dev->asic_configure.diff_sh_bit/32] & ((0x01 << ((dev->asic_configure.diff_sh_bit)%32 + 1))-1)) == 0x00)
 		{
-			//printk(KERN_ERR "match diff %d hash2_32[%d]{0x%08x}\n", dev->asic_configure.diff_sh_bit,
+			//printk_ratelimited(KERN_ERR "match diff %d hash2_32[%d]{0x%08x}\n", dev->asic_configure.diff_sh_bit,
 				//6 - dev->asic_configure.diff_sh_bit/32,be32toh(hash2_32[6 - dev->asic_configure.diff_sh_bit/32]));
-			//printk("diff cpare {0x%08x}\n", ((0x01 << ((dev->asic_configure.diff_sh_bit - 1)%32 + 1))-1));
+			//printk_ratelimited("diff cpare {0x%08x}\n", ((0x01 << ((dev->asic_configure.diff_sh_bit - 1)%32 + 1))-1));
 			gDiff_nonce_num++;
 			dev->diff1_num += (0x01UL << dev->nonce_diff);
 			dev->total_nonce_num++;
@@ -434,7 +435,7 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 				{
 					if(be32toh(hash2_32[6 - dev->net_diff_sh_bit/32]) < ((uint32_t)0xffffffff >> (dev->net_diff_sh_bit%32)))
 					{
-						printk(KERN_ERR "\n###Get Block##\n");
+						printk_ratelimited(KERN_ERR "\n###Get Block##\n");
 						dev->get_blk_num++;
 						struct timex  txc;
 						struct rtc_time tm;
@@ -444,7 +445,7 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 						unsigned int wr_len = 0;
 						do_gettimeofday(&(txc.time));
 						rtc_time_to_tm(txc.time.tv_sec,&tm);
-						printk("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+						printk_ratelimited("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
 						fp_pwerr = filp_open("/config/getblk", O_RDWR | O_CREAT | O_APPEND, 0644);
 						wr_len = sprintf(wr_buf, "UTC time:%d-%d-%d %d:%d:%d %08x%08x%08x%08x%08x%08x%08x%08x\n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec,
 							be32toh(hash2_32[7]),be32toh(hash2_32[6]),be32toh(hash2_32[5]),be32toh(hash2_32[4]),
@@ -465,7 +466,7 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 			dev->total_nonce_num++;
 		}
 		else
-			printk(KERN_ERR "match1 diff %d hash2_32{0x%08x}\n", dev->nonce_diff, be32toh(hash2_32[6 - dev->nonce_diff/32]));
+			printk_ratelimited(KERN_ERR "match1 diff %d hash2_32{0x%08x}\n", dev->nonce_diff, be32toh(hash2_32[6 - dev->nonce_diff/32]));
 		return 1;
 	}
 	else
@@ -482,9 +483,9 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 		if(htonl(hash2_32[6 - dev->asic_configure.diff_sh_bit/32]) < ((uint32_t)0xffffffff >> (dev->asic_configure.diff_sh_bit%32)))
 		//if((hash2_32[6 - dev->asic_configure.diff_sh_bit/32] & ((0x01 << ((dev->asic_configure.diff_sh_bit)%32 + 1))-1)) == 0x00)
 		{
-			printk(KERN_ERR "match diff %d hash2_32[%d]{0x%08x}\n", dev->asic_configure.diff_sh_bit,
+			printk_ratelimited(KERN_ERR "match diff %d hash2_32[%d]{0x%08x}\n", dev->asic_configure.diff_sh_bit,
 				6 - dev->asic_configure.diff_sh_bit/32,htonl(hash2_32[6 - dev->asic_configure.diff_sh_bit/32]));
-			//printk("diff cpare {0x%08x}\n", ((0x01 << ((dev->asic_configure.diff_sh_bit - 1)%32 + 1))-1));
+			//printk_ratelimited("diff cpare {0x%08x}\n", ((0x01 << ((dev->asic_configure.diff_sh_bit - 1)%32 + 1))-1));
 			gDiff_nonce_num++;
 			dev->total_nonce_num += 0x01 << dev->asic_configure.diff_sh_bit;
 			return 2;
@@ -502,10 +503,10 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 	uint32_t *hash2_32 = (uint32_t *)hash1;
 	//uint8_t i;
 	__attribute__ ((aligned (4)))  sha2_context ctx;
-	
+
 	//memcpy(ctx.state, asic_task->midstate, 32);
 	//rev((unsigned char*)ctx.state, sizeof(ctx.state));
-	
+
 	memcpy(hash1, asic_task->midstate, 32);
 	//rev(hash1, 32);
 	//flip_swab(ctx.state, hash1, 32);//
@@ -518,17 +519,17 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 	memcpy(hash1, &nonce, 4);
 
 	flip_swab(ctx.buffer + 12, hash1, 4);
-	printk("ctx:");
+	printk_ratelimited("ctx:");
 	dump_hex(&ctx,sizeof(ctx));
 	sha2_finish( &ctx, hash1);
-	printk("hash1 in hashtest\n");
+	printk_ratelimited("hash1 in hashtest\n");
 	memset( &ctx, 0, sizeof( sha2_context ) );
 	sha2(hash1, 32, hash2);
 
 	flip32(hash1, hash2);
-	//printk("hash2_32[7]{%#x}hash2_32[0]{%#x}\n", hash2_32[7], hash2_32[0]);
+	//printk_ratelimited("hash2_32[7]{%#x}hash2_32[0]{%#x}\n", hash2_32[7], hash2_32[0]);
 	if (be32toh(hash2_32[7]) != 0) {
-		printk("not work{%#x} nonce\n", le32_to_cpu(asic_task->work_id));
+		printk_ratelimited("not work{%#x} nonce\n", le32_to_cpu(asic_task->work_id));
 		return 0;
 	}
 	return 1;
@@ -541,12 +542,12 @@ extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 extern int hashtest(ASIC_TASK_P asic_task, uint32_t nonce)
 {
 	BT_AS_INFO dev = &bitmain_asic_dev;
-			
+
 	gDiff_nonce_num++;
 	dev->diff1_num += (0x01UL << dev->nonce_diff);
-	dev->total_nonce_num++;		
+	dev->total_nonce_num++;
 	return 2;
-	
+
 	if((dev->total_nonce_num & 0xffffffff) == 0xffffffff)
 		dev->cgminer_start_time = jiffies;
 }
@@ -588,10 +589,10 @@ static int bitmain_asic_open(struct inode *inode, struct file *file)
 	detect_ver |= ((value32 >> 21)&0x01)<<0x01;
 	value32 = ioread32(gpio1_virtual+ GPIO_DATAIN );
 	detect_ver |= ((value32 >> 18)&0x01)<<0x02;
-	printk("Detect hardware version = %d\n", detect_ver);
+	printk_ratelimited("Detect hardware version = %d\n", detect_ver);
 	hardware_version = detect_ver;
 	#ifdef FIX_HARDWARE_VER
-		printk("fix hardware version\n");
+		printk_ratelimited("fix hardware version\n");
 		#if defined C1_02 || defined S5
 		if((detect_ver == 0x03) || ((detect_ver == 0x04)))
 			hardware_version = 0x01;
@@ -605,7 +606,7 @@ static int bitmain_asic_open(struct inode *inode, struct file *file)
 	#endif
 	save_ver = hardware_version;
 	hardware_version = detect_ver;
-	printk("hardware_version = %#x\n", hardware_version);
+	printk_ratelimited("hardware_version = %#x\n", hardware_version);
 
 	fp_hwver = filp_open("/tmp/hwver", O_RDWR | O_CREAT | O_TRUNC, 0644);
   	wr_len = sprintf(wr_buf, "hardware_ver = 0x%02x\n", hardware_version);
@@ -618,7 +619,7 @@ static int bitmain_asic_open(struct inode *inode, struct file *file)
 	iounmap(gpio3_virtual);
 	iounmap(gpio1_virtual);
 	#if defined S2
-	printk("S2 ctrl board V1.0\n");
+	printk_ratelimited("S2 ctrl board V1.0\n");
 	#endif
 	hardware_version = save_ver;
 	if(hardware_version == 0x01)
@@ -632,13 +633,13 @@ static int bitmain_asic_open(struct inode *inode, struct file *file)
 		{
 			GREEN = 0x01<<23;
 			RED = 0x01<<13;
-			printk("S5 ctrl board V1.0\n");
+			printk_ratelimited("S5 ctrl board V1.0\n");
 		}
 		else if(detect_ver == 0x04)
 		{
 			GREEN = 0x01<<23;
 			RED = 0x01<<13;
-			printk("S5 ctrl board test V1.1\n");
+			printk_ratelimited("S5 ctrl board test V1.1\n");
 			iowrite32(PAD_PULLUP | PAD_REV | 0x7, ctl_md_vaddr + 0x828); //ip sig key gpio0_26
 		}
 		iowrite32(PAD_PULLUP | 0x7, ctl_md_vaddr + 0x820); //hash test gpio0-22
@@ -745,7 +746,7 @@ static int bitmain_asic_open(struct inode *inode, struct file *file)
 		iowrite32(value32 | (0x01<<26), gpio0_vaddr + GPIO_OE); //set input
 	}
 
-	printk(KERN_ERR "bitmain_asic_open ok\n");
+	printk_ratelimited(KERN_ERR "bitmain_asic_open ok\n");
 	return 0;
 }
 
@@ -801,7 +802,7 @@ static int bitmain_asic_close(struct inode *inode, struct file *file)
 	kfree((void*)(dev->task_buffer));
 	//free_irq(TIMER_INTERRUPT, NULL);
 	//spi_close();
-	printk(KERN_ERR "bitmain_asic_close\n");
+	printk_ratelimited(KERN_ERR "bitmain_asic_close\n");
 	return 0;
 }
 
@@ -809,7 +810,7 @@ void stop_work_to_all_chain(BT_AS_INFO dev)
 {
 	uint32_t i;
 	struct ASIC_TASK asic_task;
-	printk(KERN_ERR "stop send work to all chain\n");
+	printk_ratelimited(KERN_ERR "stop send work to all chain\n");
 	memset(&asic_task, 0x00, sizeof(asic_task));
 	for(i = 0; i < dev->asic_status_data.chain_num; i++)
 	{
@@ -838,9 +839,9 @@ void check_chain_power(BT_AS_INFO dev)
 			simulate_power_err_time = jiffies + 5 * 60 * 1000 * HZ/1000;
 		}
 		time_elasp_ms = jiffies_to_msecs(jiffies - dev->cgminer_start_time);
-		//printk("time_elasp_jiffies{%ld}\n", jiffies - dev->cgminer_start_time);
-		//printk("jiffies{%ld}dev->cgminer_start_time{%ld}", jiffies, dev->cgminer_start_time);
-		//printk("time_elasp_ms =%ldms dev->total_nonce_num{%ld}\n", time_elasp_ms, dev->total_nonce_num);
+		//printk_ratelimited("time_elasp_jiffies{%ld}\n", jiffies - dev->cgminer_start_time);
+		//printk_ratelimited("jiffies{%ld}dev->cgminer_start_time{%ld}", jiffies, dev->cgminer_start_time);
+		//printk_ratelimited("time_elasp_ms =%ldms dev->total_nonce_num{%ld}\n", time_elasp_ms, dev->total_nonce_num);
 		//bgNonce_average = ((uint32_t)dev->total_nonce_num / (time_elasp_ms / 1000)) * (CHAIN_POWER_TIME_INTERAL*60);//平均5分钟
 		if(dev->asic_status_data.chain_num !=0 )
 			bgNonce_average = (uint32_t)dev->total_nonce_num/dev->asic_status_data.chain_num;
@@ -861,8 +862,8 @@ void check_chain_power(BT_AS_INFO dev)
 		for (i = 0; i < dev->asic_status_data.chain_num; i++)
 		{
 			chain_nu = dev->chain_map[i];
-			//printk("bgNonce_average{%d}\n", bgNonce_average);
-			//printk("chain%d Chain_nonce_nu[%ld] Chain_nonce_nu_last[%ld]\n", chain_nu,Chain_nonce_nu[chain_nu],Chain_nonce_nu_last[chain_nu]);
+			//printk_ratelimited("bgNonce_average{%d}\n", bgNonce_average);
+			//printk_ratelimited("chain%d Chain_nonce_nu[%ld] Chain_nonce_nu_last[%ld]\n", chain_nu,Chain_nonce_nu[chain_nu],Chain_nonce_nu_last[chain_nu]);
 			if(Chain_nonce_nu[chain_nu] >= Chain_nonce_nu_last[chain_nu])
 			{
 				if(((Chain_nonce_nu[chain_nu] - Chain_nonce_nu_last[chain_nu]) < bgNonce_average) || (bgNonce_average == 0))
@@ -876,7 +877,7 @@ void check_chain_power(BT_AS_INFO dev)
 					unsigned int wr_len = 0;
 					do_gettimeofday(&(txc.time));
 					rtc_time_to_tm(txc.time.tv_sec,&tm);
-					//printk("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+					//printk_ratelimited("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
 					fp_pwerr = filp_open("/config/power_rst", O_RDWR | O_CREAT | O_APPEND, 0644);
 					wr_len = sprintf(wr_buf, "UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
 				    old_fs = get_fs();
@@ -894,9 +895,9 @@ void check_chain_power(BT_AS_INFO dev)
 							break;
 					}
 					if(bgNonce_average == 0)
-						printk("!!!!!!!!!!----no hash power OK\n\n");
-					printk("remap chain%d(hardware chain%d) power err\n", i, chain_nu);
-					printk("bgNonce_average{%d}chain_nonce_nu{%d}last{%d}\n", bgNonce_average, Chain_nonce_nu[chain_nu], Chain_nonce_nu_last[chain_nu]);
+						printk_ratelimited("!!!!!!!!!!----no hash power OK\n\n");
+					printk_ratelimited("remap chain%d(hardware chain%d) power err\n", i, chain_nu);
+					printk_ratelimited("bgNonce_average{%d}chain_nonce_nu{%d}last{%d}\n", bgNonce_average, Chain_nonce_nu[chain_nu], Chain_nonce_nu_last[chain_nu]);
 					#if 0
 					for(i = 0; i < dev->asic_status_data.chain_num; i++)
 					{
@@ -910,7 +911,7 @@ void check_chain_power(BT_AS_INFO dev)
 					#endif
 					stop_work_to_all_chain(dev);
 					set_baud(dev, 26);
-					printk(KERN_ERR "Detect device for anyone power err\n");
+					printk_ratelimited(KERN_ERR "Detect device for anyone power err\n");
 
 					cmd_buf[0] = 9;
 					cmd_buf[1] = 0x10; //16-23
@@ -961,7 +962,7 @@ void check_asic_status(BT_AS_INFO dev)
     static uint32_t last_gNonce_num = 0;
     if ((dev->cgminer_start == true) && (gTotal_asic_num !=0))
     {
-		//printk(KERN_ERR "check_asic_status\n");
+		//printk_ratelimited(KERN_ERR "check_asic_status\n");
 		if (gNonce_num > gTotal_asic_num * 8)
         {
             if (gNonce_num > 0x7fffffff)
@@ -977,7 +978,7 @@ void check_asic_status(BT_AS_INFO dev)
                 gNonce_num >>= 2;
                 last_gNonce_num >>=2;
             }
-		
+
             bgNonce_average = (gNonce_num - last_gNonce_num )/ gTotal_asic_num / 8;
             last_gNonce_num = gNonce_num;
             for (i = 0; i < CHAIN_SIZE; i++)
@@ -987,7 +988,7 @@ void check_asic_status(BT_AS_INFO dev)
                     if ((gAsic_cnt[i][j] - last_asic_nonce[i][j]) < bgNonce_average)
                     {
                         gChain_Asic_status[i][j/32] &= ~(0x01 << (j%32));
-						//printk("gNonce_num{%d}gAsic_cnt[%d][%d]{%d}\n", gNonce_num, i, j, gAsic_cnt[i][j]);
+						//printk_ratelimited("gNonce_num{%d}gAsic_cnt[%d][%d]{%d}\n", gNonce_num, i, j, gAsic_cnt[i][j]);
                     }
                     else
                     {
@@ -1025,7 +1026,7 @@ void ChangePWM(BT_AS_INFO dev, unsigned int pwm_percent)
 	{
 		dev->pwm_percent = custom_fan;
 		pwm_percent = custom_fan;
-		//printk("Customized fan speed {%d}\n", pwm_percent);
+		//printk_ratelimited("Customized fan speed {%d}\n", pwm_percent);
 	}
 	else
 	{
@@ -1036,7 +1037,7 @@ void ChangePWM(BT_AS_INFO dev, unsigned int pwm_percent)
 		pwm_percent = 100;
 	if(pwm_percent < LOW_PWM_PERCENT)
    		pwm_percent = LOW_PWM_PERCENT;
-	//printk("pwm_percent{%d}\n", pwm_percent);
+	//printk_ratelimited("pwm_percent{%d}\n", pwm_percent);
 	dev->pwm_high_value = pwm_percent * PWM_SCALE/100; //百分比
 	dev->pwm_low_value = (100 - pwm_percent) * PWM_SCALE/100;
 }
@@ -1076,7 +1077,7 @@ void adjust_pwm_from_temp(BT_AS_INFO dev)
 	{
 		if((temp_out_pool_cnt++ >= TEST_TEMP_CNT) && (dev->temp_out_fool == false))
 			dev->temp_out_fool = true;
-		printk(KERN_ERR "chain %d temp highest{%d}\n", wchain_highest, temp_highest);
+		printk_ratelimited(KERN_ERR "chain %d temp highest{%d}\n", wchain_highest, temp_highest);
 	}
     else
     {
@@ -1088,7 +1089,7 @@ void adjust_pwm_from_temp(BT_AS_INFO dev)
 	{
 		if((temp_out_high_cnt++ >= TEST_TEMP_CNT) && (dev->temp_out_high == false))
 			dev->temp_out_high = true;
-		printk(KERN_ERR "chain %d temp out highest{%d}\n", wchain_highest, temp_highest);
+		printk_ratelimited(KERN_ERR "chain %d temp out highest{%d}\n", wchain_highest, temp_highest);
 	}
     else
     {
@@ -1110,7 +1111,7 @@ void adjust_pwm_from_temp(BT_AS_INFO dev)
 		pwm_percent = LOW_PWM_PERCENT + (temp_highest - 35) * PWM_ADJUST_FACTOR;
         if (pwm_percent < 0)
             pwm_percent = 0;
-		//printk("temp_highest{%d}\n", temp_highest);
+		//printk_ratelimited("temp_highest{%d}\n", temp_highest);
 		ChangePWM(dev, pwm_percent);
 		llast_temperature = last_temperature;
         last_temperature = temp_highest;
@@ -1172,7 +1173,7 @@ void beep(BT_AS_INFO dev)
 				beep_on_timeout = jiffies + 1000 * HZ/1000;// 1 s
 				iowrite32(ioread32(dev->beep_virtual_addr + TCLR) | TIMER_ST, dev->beep_virtual_addr + TCLR);
 				dev->beep_status = true;
-				printk("Beep on\n");
+				printk_ratelimited("Beep on\n");
 			}
 			else
 			{
@@ -1223,7 +1224,7 @@ void beep(BT_AS_INFO dev)
 				beep_on_timeout = jiffies + 500 * HZ/1000;//500ms
 				iowrite32(0x01<<20, gpio0_vaddr + GPIO_SETDATAOUT);
 				dev->beep_status = true;
-				//printk("Beep on\n");
+				//printk_ratelimited("Beep on\n");
 			}
 			else
 			{
@@ -1307,9 +1308,9 @@ enum TEMP_STATE check_temp_state(BT_AS_INFO dev)
 	if ((temp_highest & 0xff) >= TEMP_OUT && (temp_highest & 0xff) < TEMP_OUT_HIGHT)
 	{
 		if(temp_out_pool_cnt++ >= TEST_TEMP_CNT)
-			printk(KERN_ERR "chain %d temp highest{%d}\n", wchain_highest, temp_highest);
+			printk_ratelimited(KERN_ERR "chain %d temp highest{%d}\n", wchain_highest, temp_highest);
 			return TEMP_WARN;
-		
+
 	}
     else
     {
@@ -1322,9 +1323,9 @@ enum TEMP_STATE check_temp_state(BT_AS_INFO dev)
 		if(temp_out_high_cnt++ >= TEST_TEMP_CNT)
 		{
 			check_state = 10;
-			printk(KERN_ERR "chain %d temp out highest{%d}\n", wchain_highest, temp_highest);
+			printk_ratelimited(KERN_ERR "chain %d temp out highest{%d}\n", wchain_highest, temp_highest);
 			return TEMP_OUT_STATE;
-		}	
+		}
 	}
     else
     {
@@ -1387,12 +1388,12 @@ enum FAN_STATE check_fan_state(BT_AS_INFO dev)
 		else if(fan_speed > (FAN_MAX_SPEED * pwm_percent *8/ 100 /10))
 			normal_fan ++;
 
-		//printk("Fan%d speed %d, pwm_percent %d  ", i, fan_speed, pwm_percent);
+		//printk_ratelimited("Fan%d speed %d, pwm_percent %d  ", i, fan_speed, pwm_percent);
 	}
 	if( normal_fan == fan_num )
 		return FAN_NORMAL;
 
-	printk("\n error_fan %d, normal_fan %d, fan_num %d \n", error_fan, normal_fan, fan_num);
+	printk_ratelimited("\n error_fan %d, normal_fan %d, fan_num %d \n", error_fan, normal_fan, fan_num);
 
 	if( error_fan == dev->fan_num )
 	{
@@ -1411,7 +1412,7 @@ enum FIFO_STATE check_fifo_state(BT_AS_INFO dev)
 	if(dev->task_buffer_rd == dev->task_buffer_wr)
 	{
 		if((dev->fifo_empt_cnt++ %100) == 0)
-			printk(KERN_ERR "drv fifo empty\n");
+			printk_ratelimited(KERN_ERR "drv fifo empty\n");
 		return ALLFIFO_EMPTY;
 	}
 	return FIFO_NORMAL;
@@ -1439,9 +1440,9 @@ enum CHAIN_STATE check_chain_state(BT_AS_INFO dev)
 			simulate_power_err_time = jiffies + 5 * 60 * 1000 * HZ/1000;
 		}
 		time_elasp_ms = jiffies_to_msecs(jiffies - dev->cgminer_start_time);
-		//printk("time_elasp_jiffies{%ld}\n", jiffies - dev->cgminer_start_time);
-		//printk("jiffies{%ld}dev->cgminer_start_time{%ld}", jiffies, dev->cgminer_start_time);
-		//printk("time_elasp_ms =%ldms dev->total_nonce_num{%ld}\n", time_elasp_ms, dev->total_nonce_num);
+		//printk_ratelimited("time_elasp_jiffies{%ld}\n", jiffies - dev->cgminer_start_time);
+		//printk_ratelimited("jiffies{%ld}dev->cgminer_start_time{%ld}", jiffies, dev->cgminer_start_time);
+		//printk_ratelimited("time_elasp_ms =%ldms dev->total_nonce_num{%ld}\n", time_elasp_ms, dev->total_nonce_num);
 		//bgNonce_average = ((uint32_t)dev->total_nonce_num / (time_elasp_ms / 1000)) * (CHAIN_POWER_TIME_INTERAL*60);//平均5分钟
 
 		if((time_elasp_ms / (1000 * CHAIN_POWER_TIME_INTERAL*60)) == 0)
@@ -1459,13 +1460,13 @@ enum CHAIN_STATE check_chain_state(BT_AS_INFO dev)
 		for (i = 0; i < dev->asic_status_data.chain_num; i++)
 		{
 			chain_nu = dev->chain_map[i];
-			
+
 			if(Chain_nonce_nu[chain_nu] >= Chain_nonce_nu_last[chain_nu])
 			{
 				if(((Chain_nonce_nu[chain_nu] - Chain_nonce_nu_last[chain_nu]) < bgNonce_average) || (bgNonce_average == 0))
 				{
-					printk("bgNonce_average{%d}\n", bgNonce_average);
-					printk("chain%d Chain_nonce_nu[%ld] Chain_nonce_nu_last[%ld]\n", chain_nu,Chain_nonce_nu[chain_nu],Chain_nonce_nu_last[chain_nu]);
+					printk_ratelimited("bgNonce_average{%d}\n", bgNonce_average);
+					printk_ratelimited("chain%d Chain_nonce_nu[%ld] Chain_nonce_nu_last[%ld]\n", chain_nu,Chain_nonce_nu[chain_nu],Chain_nonce_nu_last[chain_nu]);
 					return CHAIN_ERROR;
 				}
 			}
@@ -1503,7 +1504,7 @@ void reset_chain(BT_AS_INFO dev)
     unsigned int wr_len = 0;
     do_gettimeofday(&(txc.time));
     rtc_time_to_tm(txc.time.tv_sec,&tm);
-    printk("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
+    printk_ratelimited("UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
     fp_pwerr = filp_open("/config/power_rst", O_RDWR | O_CREAT | O_APPEND, 0644);
     wr_len = sprintf(wr_buf, "UTC time :%d-%d-%d %d:%d:%d \n",tm.tm_year+1900,tm.tm_mon + 1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
     old_fs = get_fs();
@@ -1521,9 +1522,9 @@ void reset_chain(BT_AS_INFO dev)
                 break;
     }
     if(bgNonce_average == 0)
-          printk("!!!!!!!!!!----no hash power OK\n\n");
-    printk("remap chain%d(hardware chain%d) power err\n", i, chain_nu);
-    printk("bgNonce_average{%d}chain_nonce_nu{%d}last{%d}\n", bgNonce_average, Chain_nonce_nu[chain_nu], Chain_nonce_nu_last[chain_nu]);
+          printk_ratelimited("!!!!!!!!!!----no hash power OK\n\n");
+    printk_ratelimited("remap chain%d(hardware chain%d) power err\n", i, chain_nu);
+    printk_ratelimited("bgNonce_average{%d}chain_nonce_nu{%d}last{%d}\n", bgNonce_average, Chain_nonce_nu[chain_nu], Chain_nonce_nu_last[chain_nu]);
 #if 0
     for(i = 0; i < dev->asic_status_data.chain_num; i++)
     {
@@ -1537,7 +1538,7 @@ void reset_chain(BT_AS_INFO dev)
 #endif
     stop_work_to_all_chain(dev);
     set_baud(dev, 26);
-    printk(KERN_ERR "Detect device for anyone power err\n");
+    printk_ratelimited(KERN_ERR "Detect device for anyone power err\n");
 
     cmd_buf[0] = 9;
     cmd_buf[1] = 0x10; //16-23
@@ -1638,7 +1639,7 @@ void do_send_work(BT_AS_INFO dev)
 	int ret = -1;
 	uint8_t work_num = 0;
 
-		
+
 	while(g_FPGA_FIFO_SPACE > g_FPGA_RESERVE_FIFO_SPACE && dev->task_buffer_rd != dev->task_buffer_wr)
 		{
 			bool new_block = false;
@@ -1801,16 +1802,16 @@ void step(BT_AS_INFO dev)
 		temp_state = check_temp_state(dev);
 		fan_state = check_fan_state(dev);
 		/*
-		printk("\nchain exist: %x, g_TOTAL_FPGA_FIFO %#x,g_FPGA_RESERVE_FIFO_SPACE{%d}\n",dev->chain_exist, g_TOTAL_FPGA_FIFO, g_FPGA_RESERVE_FIFO_SPACE);
-		printk("g_FPGA_FIFO_SPACE %d, fifo_space{%d}\n",g_FPGA_FIFO_SPACE, fifo_space);
-		printk("ret_nonce_num = %d, snd_to_fpga_work{%d}\n",ret_nonce_num, snd_to_fpga_work);
-		printk("total ret nonce num = %llu, diff1_nonce num = %llu\n", dev->total_nonce_num, dev->diff1_num);
-		printk("gDiff_nonce_num{%d}gNonce_Err{%d}\n", gDiff_nonce_num, gNonce_Err);
-		printk("gSubmit_nonce_num{%d}\n", gSubmit_nonce_num);
-		printk("chain%1d asic%02d ret nonce_num{%d}\n", prnt_chin_nu, prnt_aisc_nu, gAsic_cnt[prnt_chin_nu][prnt_aisc_nu]);
-		printk("dev->net_diff_sh_bit{%d}dev->get_blk_num{%d}\n", dev->net_diff_sh_bit, dev->get_blk_num);
-		printk("dev->temp_out_ctrl{%d}\n\n", dev->temp_out_ctrl);
-		printk("fifo_state %d temp_state %d fan_state %d \n", fifo_state,temp_state,fan_state);*/
+		printk_ratelimited("\nchain exist: %x, g_TOTAL_FPGA_FIFO %#x,g_FPGA_RESERVE_FIFO_SPACE{%d}\n",dev->chain_exist, g_TOTAL_FPGA_FIFO, g_FPGA_RESERVE_FIFO_SPACE);
+		printk_ratelimited("g_FPGA_FIFO_SPACE %d, fifo_space{%d}\n",g_FPGA_FIFO_SPACE, fifo_space);
+		printk_ratelimited("ret_nonce_num = %d, snd_to_fpga_work{%d}\n",ret_nonce_num, snd_to_fpga_work);
+		printk_ratelimited("total ret nonce num = %llu, diff1_nonce num = %llu\n", dev->total_nonce_num, dev->diff1_num);
+		printk_ratelimited("gDiff_nonce_num{%d}gNonce_Err{%d}\n", gDiff_nonce_num, gNonce_Err);
+		printk_ratelimited("gSubmit_nonce_num{%d}\n", gSubmit_nonce_num);
+		printk_ratelimited("chain%1d asic%02d ret nonce_num{%d}\n", prnt_chin_nu, prnt_aisc_nu, gAsic_cnt[prnt_chin_nu][prnt_aisc_nu]);
+		printk_ratelimited("dev->net_diff_sh_bit{%d}dev->get_blk_num{%d}\n", dev->net_diff_sh_bit, dev->get_blk_num);
+		printk_ratelimited("dev->temp_out_ctrl{%d}\n\n", dev->temp_out_ctrl);
+		printk_ratelimited("fifo_state %d temp_state %d fan_state %d \n", fifo_state,temp_state,fan_state);*/
 		if(++prnt_aisc_nu >= gChain_Asic_num[dev->chain_map[prnt_chin_nu]])
 		{
 			prnt_aisc_nu = 0;
@@ -1922,13 +1923,13 @@ static void Prnt(unsigned long data)
 	BT_AS_INFO dev = &bitmain_asic_dev;
 	uint8_t work_num = 0;
 	unsigned long interval;
-	//printk("wr{%#d}rd{%d}\n", dev->task_buffer_wr, dev->task_buffer_rd);
+	//printk_ratelimited("wr{%#d}rd{%d}\n", dev->task_buffer_wr, dev->task_buffer_rd);
 	Prnt_time_out = jiffies + 1000 * HZ/1000; // 1s
 	//iowrite32(0x01<<8, gpio2_vaddr + GPIO_SETDATAOUT);
 	//send_to_pfga_work(dev);
 	if(queue_work(dev->send_to_fpga_work_wq, &dev->send_to_fpga_work) != 1)
 	{
-		//printk("send_to_fpga_work in queue\n");
+		//printk_ratelimited("send_to_fpga_work in queue\n");
 		if(dev->restarting_hash == true)
 			del_timer(&prnt_timer);
 	}
@@ -1953,7 +1954,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 	bool asic_reset = false;
 	//spin_lock(&dev->lock);
 	//bitmain_asic_open_usb(dev);
-	//printk("enter bitmain_asic_write\n");
+	//printk_ratelimited("enter bitmain_asic_write\n");
 	if (copy_from_user((void*)txtask, user_buffer, writesize))
 	{
 		retval = -EFAULT;
@@ -1961,21 +1962,21 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 	}
 	//printk data
 	/*
-	printk("asic_writ data is:");
+	printk_ratelimited("asic_writ data is:");
 	for(retval = 0; retval < writesize; retval++)
 	{
 		if(0 == (retval %16))
-			printk("\n 0x%02x: ", retval);
-		printk("0x%02x, ", *((char*)txtask + retval));
+			printk_ratelimited("\n 0x%02x: ", retval);
+		printk_ratelimited("0x%02x, ", *((char*)txtask + retval));
 	}
-	printk("\n");
+	printk_ratelimited("\n");
 	*/
 	if (cmd_check((uint8_t*)txtask)) //crc16 ok
 		{
 			switch (txtask->token_type)
 			{
 			case BM_TX_TASK:
-				//printk(KERN_ERR "TX TASK\n");
+				//printk_ratelimited(KERN_ERR "TX TASK\n");
 				if (txtask->new_block)
 				{
 					dev->task_buffer_wr = dev->task_buffer_rd;
@@ -1985,7 +1986,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					dev->new_block = true;
 					asic_result_rd = asic_result_wr;
 					asic_result_full = 0;
-					//printk(KERN_ERR "New blok\n");
+					//printk_ratelimited(KERN_ERR "New blok\n");
 				}
 				if(dev->cgminer_start == false)
 					//bitmain_asic_get_status(NULL,dev->chain_map[0], 1, 0, 4); //CHIP_ADDR_REG 4  PLL reg
@@ -1998,7 +1999,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				if(fifo_space < task_work_num)
 				{
 					task_work_num = fifo_space;
-					//printk(KERN_ERR "cgminer send too data!!!!\n");
+					//printk_ratelimited(KERN_ERR "cgminer send too data!!!!\n");
 				}
 				if ((dev->task_buffer_wr + task_work_num) >= dev->task_buffer_size)
 				{
@@ -2008,33 +2009,33 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					task_work_num -= need_cpy_task_work;
 					memcpy(dev->task_buffer, &txtask->asic_task[need_cpy_task_work], task_work_num * sizeof (*dev->task_buffer));
 					dev->task_buffer_wr = task_work_num;
-					//printk("split asic_task[0].work_id %#x wr{%d}\n", le32_to_cpu(txtask.asic_task[0].work_id), dev->task_buffer_wr);
+					//printk_ratelimited("split asic_task[0].work_id %#x wr{%d}\n", le32_to_cpu(txtask.asic_task[0].work_id), dev->task_buffer_wr);
 				}
 				else
 				{
 					memcpy(dev->task_buffer + dev->task_buffer_wr, &txtask->asic_task[0],
 						   task_work_num * sizeof (*dev->task_buffer));
 					dev->task_buffer_wr += task_work_num;
-					//printk("asic_task[0].work_id %#x wr{%d}rd{%d}\n", le32_to_cpu(txtask.asic_task[0].work_id), dev->task_buffer_wr,dev->task_buffer_rd);
+					//printk_ratelimited("asic_task[0].work_id %#x wr{%d}rd{%d}\n", le32_to_cpu(txtask.asic_task[0].work_id), dev->task_buffer_wr,dev->task_buffer_rd);
 				}
 				if(dev->hw_error_eft == true)
 				{
 					if(dev->asic_configure.diff_sh_bit != txtask->diff)
 					{
-						printk(KERN_ERR "Change diff to %d\n", txtask->diff);
+						printk_ratelimited(KERN_ERR "Change diff to %d\n", txtask->diff);
 						dev->asic_configure.diff_sh_bit = txtask->diff;
 						dev->nonce_diff = dev->asic_configure.diff_sh_bit;
 						#if	defined S4_Board || defined C1_Board || defined S5 || defined S4_PLUS
 						if(dev->nonce_diff > AISC_RT_DIFF)
 						{
 							dev->nonce_diff = AISC_RT_DIFF;
-							printk(KERN_ERR "diff fix to %d\n", dev->nonce_diff);
+							printk_ratelimited(KERN_ERR "diff fix to %d\n", dev->nonce_diff);
 						}
 						#endif
 					}
 					if(dev->net_diff_sh_bit != txtask->net_diff)
 					{
-						printk(KERN_ERR "Change net_diff to %d\n", txtask->net_diff);
+						printk_ratelimited(KERN_ERR "Change net_diff to %d\n", txtask->net_diff);
 						dev->net_diff_sh_bit = txtask->net_diff;
 					}
 				}
@@ -2056,7 +2057,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 
 				if ((timer_pending(&prnt_timer) == 0) || (dev->new_block == true))//不存在
 				{
-					//printk(KERN_ERR "start timer\n");
+					//printk_ratelimited(KERN_ERR "start timer\n");
 					mod_timer(&prnt_timer, jiffies + 1*HZ/1000); //Start Timer 1ms
 					dev->cgminer_start = true;
 				}
@@ -2076,7 +2077,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				//dev->fan_ctrl_type = true;
 				//dev->temp_out_ctrl = false;
 				dev->total_nonce_num = dev->fpga_nonce1_num;
-				printk("btm_tx_conf\n");
+				printk_ratelimited("btm_tx_conf\n");
 				if (bt_conf->reset)
 				{
 					asic_reset = true;
@@ -2086,14 +2087,14 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					fan_custom = true;
 					custom_fan = bt_conf->fan_pwm_data;
 					dev->asic_configure.fan_pwm_data = bt_conf->fan_pwm_data;
-					printk("fan pwm valid {%d}\n", dev->asic_configure.fan_pwm_data);
+					printk_ratelimited("fan pwm valid {%d}\n", dev->asic_configure.fan_pwm_data);
 					//ChangePWM(dev->asic_configure.fan_pwm_data);
 				}
 				if (bt_conf->frequency_eft)
 				{
 					dev->asic_configure.frequency = bt_conf->frequency;
 					//set_frequency(dev->asic_configure.frequency);
-					printk("Set asic frequency {%d}\n", dev->asic_configure.frequency);
+					printk_ratelimited("Set asic frequency {%d}\n", dev->asic_configure.frequency);
 				}
 				if (bt_conf->voltage_eft)
 				{
@@ -2118,7 +2119,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				{
 					dev->asic_configure.chip_address = bt_conf->chip_address;
 					dev->asic_configure.reg_address = bt_conf->reg_address;
-					printk("Set chip_addr{%#x}reg_address{%#x}value{%#x}\n",
+					printk_ratelimited("Set chip_addr{%#x}reg_address{%#x}value{%#x}\n",
 						   dev->asic_configure.chip_address, dev->asic_configure.reg_address,
 						   bt_conf->reg_data);
 					reg_addr = dev->asic_configure.reg_address;
@@ -2128,7 +2129,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					{
 						dev->asic_configure.freq_vlaue = bt_conf->reg_data;
 						#if defined BM1385
-						printk("pll reg_data %#x\n", bt_conf->reg_data);
+						printk_ratelimited("pll reg_data %#x\n", bt_conf->reg_data);
 						dev->asic_configure.freq_vlaue = bt_conf->reg_data = dev->asic_configure.frequency;
 						#endif
 						set_frequency(dev, bt_conf->reg_data);
@@ -2150,7 +2151,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					#if defined BM1385
 					dev->asic_configure.timeout_data = 0xffffffff/64/64/dev->asic_configure.frequency/1000;
 					#endif
-					printk(KERN_ERR "Timeout {%d}\n", dev->asic_configure.timeout_data);
+					printk_ratelimited(KERN_ERR "Timeout {%d}\n", dev->asic_configure.timeout_data);
 					#ifndef S5_S_VL
 					dev->timeout_valid = true;
 					nonce_query(dev);
@@ -2158,18 +2159,18 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 					#endif
 					dev->send_to_fpga_interval = (dev->asic_configure.timeout_data * g_TOTAL_FPGA_FIFO * 4)/ dev->asic_status_data.chain_num / (sizeof(FPGA_WORK) - 4);
 					dev->send_to_fpga_interval /=4;
-					printk(KERN_ERR "Snd Time Interval {%d}ms\n", dev->send_to_fpga_interval);
+					printk_ratelimited(KERN_ERR "Snd Time Interval {%d}ms\n", dev->send_to_fpga_interval);
 					if(dev->send_to_fpga_interval > 200)
 					{
 						//dev->send_to_fpga_interval = 200;
 						dev->send_to_fpga_interval = 100;
-						printk(KERN_ERR "Adj Snd Time Interval {%d}ms\n", dev->send_to_fpga_interval);
+						printk_ratelimited(KERN_ERR "Adj Snd Time Interval {%d}ms\n", dev->send_to_fpga_interval);
 					}
 					is_started = true;
 				}
 				dev->hw_error_eft = bt_conf->hw_error_eft;
 				//dev->cgminer_start = true;
-				printk("Set bitmain configure\n");
+				printk_ratelimited("Set bitmain configure\n");
 			}
 				break;
 			case BM_GET_STATUS:
@@ -2179,7 +2180,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				{
 					asic_reset = true;
 					dev->asic_configure.bauddiv = 26;
-					printk(KERN_ERR "Detect device\n");
+					printk_ratelimited(KERN_ERR "Detect device\n");
 					detect_chain_num(dev);
 				}
 				if (bt_gt_status->chip_status_eft)
@@ -2191,7 +2192,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				if(bt_gt_status->test_hash == 0xba)
 					nonce_query(dev);
 				dev->get_status = true;
-				//printk("Get status\n");
+				//printk_ratelimited("Get status\n");
 			}
 				break;
 			default:
@@ -2210,7 +2211,7 @@ static ssize_t bitmain_asic_write(struct file *file, const char __user *user_buf
 				dev->task_buffer_full = false;
 				dev->task_buffer_rd = dev->task_buffer_wr;
 				#if 0
-				printk("Clear Nonce count\n");
+				printk_ratelimited("Clear Nonce count\n");
 				for (i = 0; i < CHAIN_SIZE; i++)
 				{
 					for (j = 0; j < 32; j++)
@@ -2248,7 +2249,7 @@ static int create_rx_status_struct(struct BITMAIN_STATUS_DATA *rx_status_data, b
 	rx_status_data->get_blk_num = dev->get_blk_num & 0x0f;
     pos = 28;
 	//pos += rx_status_data->chain_num * sizeof(rx_status_data->chain_asic_exist[0]);
-	//printk("rx_status_data->chain_num{%d}\n", rx_status_data->chain_num);
+	//printk_ratelimited("rx_status_data->chain_num{%d}\n", rx_status_data->chain_num);
 	for (i = 0; i < rx_status_data->chain_num; i++)
     {
 		#if 0 //S2  FPGA pin debug 添加
@@ -2332,7 +2333,7 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
 	if(g_FPGA_FIFO_SPACE > g_FPGA_RESERVE_FIFO_SPACE)
 		send_to_pfga_work(dev);
 	#endif
-	//printk(KERN_ERR "33work_id{%d}addr{%#x}\n",asic_result[33].work_id, &(asic_result[33].work_id));
+	//printk_ratelimited(KERN_ERR "33work_id{%d}addr{%#x}\n",asic_result[33].work_id, &(asic_result[33].work_id));
 	if (dev->task_buffer_full)
     {
         fifo_space = 0;
@@ -2368,7 +2369,7 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
         {
             memcpy(&bitmain_result.nonce[nonce_num], (void*)&asic_result[asic_result_rd], sizeof (asic_result[0]));
             nonce_num++;
-			//printk(KERN_ERR "work_id{%d}rd{%d}wr{%d}\n",asic_result[asic_result_rd].work_id, asic_result_rd, asic_result_wr);
+			//printk_ratelimited(KERN_ERR "work_id{%d}rd{%d}wr{%d}\n",asic_result[asic_result_rd].work_id, asic_result_rd, asic_result_wr);
             increase_variable_rehead_U16(&asic_result_rd, ASIC_RESULT_NUM);
 			gSubmit_nonce_num++;
         }
@@ -2390,7 +2391,7 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
         *((char*) &bitmain_result + bitmain_result.length + 2 + 1) = (char) (crc16 >> 8);
         retval = bitmain_result.length + 4;
         last_read_nonce_jiffies = jiffies;
-        //printk("read %d nonce\n", nonce_num);
+        //printk_ratelimited("read %d nonce\n", nonce_num);
         //gNonce_num += nonce_num;
 		if (0 != copy_to_user(userbuf, (void*)&bitmain_result, retval))
 		{
@@ -2403,7 +2404,7 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
         if (asic_result_status_full || (asic_result_status_rd != asic_result_status_wr))
         {
             asic_result_status_full = 0;
-            //printk("status return\n");
+            //printk_ratelimited("status return\n");
             retval = create_rx_status_struct(&dev->asic_status_data, true, asic_result_status[asic_result_status_rd],
                                              fifo_space, dev->temp, dev->temp_num, dev->fan_speed, dev->fan_num);
             increase_variable_rehead_U16(& asic_result_status_rd, ASIC_RESULT_STATUS_NUM);
@@ -2413,11 +2414,11 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
             retval = create_rx_status_struct(&dev->asic_status_data, false, 0,
                                              fifo_space, dev->temp, dev->temp_num, dev->fan_speed, dev->fan_num);
         }
-        //printk("get_status:fifo_space %d rd(%d)wr(%d)\n",fifo_space,dev->task_buffer_rd,dev->task_buffer_wr);
+        //printk_ratelimited("get_status:fifo_space %d rd(%d)wr(%d)\n",fifo_space,dev->task_buffer_rd,dev->task_buffer_wr);
 		if(retval > count)
 		{
 			retval = count;
-			printk(KERN_ERR "count too small in %s\n", __func__);
+			printk_ratelimited(KERN_ERR "count too small in %s\n", __func__);
 		}
 
 		if (0 != copy_to_user(userbuf, (void*)& dev->asic_status_data, retval))
@@ -2426,14 +2427,14 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
 		}
 		if((retval >0 ) && (rx_st_prnt))
 		{
-			printk("rx_status data is:\n");
+			printk_ratelimited("rx_status data is:\n");
 			for(i = 0; i < retval; i++)
 			{
 				if(0 == (i %16))
-					printk("\n 0x%02x: ", i);
-				printk("0x%02x, ", *((char*)&dev->asic_status_data + i));
+					printk_ratelimited("\n 0x%02x: ", i);
+				printk_ratelimited("0x%02x, ", *((char*)&dev->asic_status_data + i));
 			}
-			printk("\n");
+			printk_ratelimited("\n");
 		}
     }
 	#if 1
@@ -2459,18 +2460,18 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
         *((char*) &bitmain_result + bitmain_result.length + 2) = crc16 & 0xff;
         *((char*) &bitmain_result + bitmain_result.length + 2 + 1) = (char) (crc16 >> 8);
         retval = bitmain_result.length + 4;
-        //printk("fifo_space %d rd(%d)wr(%d)\n",fifo_space,dev->task_buffer_rd,dev->task_buffer_wr);
+        //printk_ratelimited("fifo_space %d rd(%d)wr(%d)\n",fifo_space,dev->task_buffer_rd,dev->task_buffer_wr);
 		if (0 != copy_to_user(userbuf, (void*)&bitmain_result, retval))
 		{
 			retval = -EFAULT;
 		}
-		//printk(KERN_ERR "ttn %llu\n", dev->total_nonce_num);
+		//printk_ratelimited(KERN_ERR "ttn %llu\n", dev->total_nonce_num);
 		ret_ttn_timeout = jiffies + 1000 * HZ/1000;//1000ms;
 	}
 	#endif
 	mutex_unlock(&dev->result_lock);
 	spin_unlock(&dev->lock);
-	//printk("out read{%d}\n", retval);
+	//printk_ratelimited("out read{%d}\n", retval);
 	return retval;
 }
 /*
@@ -2535,7 +2536,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			// 检测nSTATUS，如果为"0"，表明FPGA已响应配置要求，可开始进行配置。否则报错
 			if ((ioread32(gpio2_vaddr + GPIO_DATAIN) & (0x01 << 10))!= 0)
 			{
-				printk(KERN_ERR "FPGA don't responed config{%#x}\n", ioread32(gpio2_vaddr + GPIO_DATAIN));
+				printk_ratelimited(KERN_ERR "FPGA don't responed config{%#x}\n", ioread32(gpio2_vaddr + GPIO_DATAIN));
 				nStatus = 0;
 			}
 			iowrite32(0x01<<8, gpio2_vaddr + GPIO_SETDATAOUT);
@@ -2543,7 +2544,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			break;
 		case CONFIG_DATA:
 			copy_from_user((unsigned char*)&fdata, (unsigned char*)arg, sizeof(fdata));
-			printk("fdata.pdata{%#x}len{%d}\n", (unsigned int)fdata.pdata, fdata.data_len);
+			printk_ratelimited("fdata.pdata{%#x}len{%d}\n", (unsigned int)fdata.pdata, fdata.data_len);
 			copy_from_user(data_buffer, (unsigned char*)fdata.pdata, fdata.data_len);
 			for(j = 0; j < fdata.data_len; j++)
 			{
@@ -2562,7 +2563,7 @@ static long bitmain_asic_ioctl(struct file *file,
 					//if (get_gpio(pnSt) == 0)
 					if ((ioread32(gpio2_vaddr + GPIO_DATAIN) & (0x01 << 10))== 0)
 					{ // 检测nSTATUS，如果为"0"，表明FPGA配置出错
-						printk(KERN_ERR "FPGA config err {%#x}\n", ioread32(gpio2_vaddr + GPIO_DATAIN));
+						printk_ratelimited(KERN_ERR "FPGA config err {%#x}\n", ioread32(gpio2_vaddr + GPIO_DATAIN));
 						nStatus = 0;
 						break;
 					}
@@ -2585,7 +2586,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
 			if ((ioread32(gpio2_vaddr + GPIO_DATAIN) & (0x01 << 12)) == 0)
 			{ // 检测nCONF_Done，如果为"0"，表明FPGA配置未成功
-				printk(KERN_ERR "Configure failure\n");
+				printk_ratelimited(KERN_ERR "Configure failure\n");
 				nStatus = 0;
 			}
 			//Set SPI1 D0 to GPIO mode
@@ -2594,7 +2595,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			copy_to_user((unsigned char*)arg, (unsigned char*)&nStatus, sizeof(unsigned int));
 			break;
 		default:
-			printk("IOCTL cmd not surpport{%#x}{%d}\n", cmd,_IOC_NR(cmd));
+			printk_ratelimited("IOCTL cmd not surpport{%#x}{%d}\n", cmd,_IOC_NR(cmd));
 			return	-ENOTTY;
 	}
 	if(nStatus == 0)
@@ -2661,7 +2662,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			// 检测nSTATUS，如果为"0"，表明FPGA已响应配置要求，可开始进行配置。否则报错
 			if ((ioread32(gpio0_vaddr + GPIO_DATAIN) & (0x01 << 12))!= 0)
 			{
-				printk(KERN_ERR "FPGA don't responed config{%#x}\n", ioread32(gpio0_vaddr + GPIO_DATAIN));
+				printk_ratelimited(KERN_ERR "FPGA don't responed config{%#x}\n", ioread32(gpio0_vaddr + GPIO_DATAIN));
 				nStatus = 0;
 			}
 			iowrite32(0x01<<19, gpio1_vaddr + GPIO_SETDATAOUT);
@@ -2669,7 +2670,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			break;
 		case CONFIG_DATA:
 			copy_from_user((unsigned char*)&fdata, (unsigned char*)arg, sizeof(fdata));
-			//printk("fdata.pdata{%#x}len{%d}\n", (unsigned int)fdata.pdata, fdata.data_len);
+			//printk_ratelimited("fdata.pdata{%#x}len{%d}\n", (unsigned int)fdata.pdata, fdata.data_len);
 			copy_from_user(data_buffer, (unsigned char*)fdata.pdata, fdata.data_len);
 			for(j = 0; j < fdata.data_len; j++)
 			{
@@ -2688,7 +2689,7 @@ static long bitmain_asic_ioctl(struct file *file,
 					//if (get_gpio(pnSt) == 0)
 					if ((ioread32(gpio0_vaddr + GPIO_DATAIN) & (0x01 << 12))== 0)
 					{ // 检测nSTATUS，如果为"0"，表明FPGA配置出错
-						printk(KERN_ERR "FPGA config err {%#x}\n", ioread32(gpio0_vaddr + GPIO_DATAIN));
+						printk_ratelimited(KERN_ERR "FPGA config err {%#x}\n", ioread32(gpio0_vaddr + GPIO_DATAIN));
 						nStatus = 0;
 						break;
 					}
@@ -2712,7 +2713,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			iowrite32(0x01<<15, gpio3_vaddr + GPIO_CLEARDATAOUT);
 			if ((ioread32(gpio0_vaddr + GPIO_DATAIN) & (0x01 << 7)) == 0)
 			{ // 检测nCONF_Done，如果为"0"，表明FPGA配置未成功
-				printk(KERN_ERR "Configure failure\n");
+				printk_ratelimited(KERN_ERR "Configure failure\n");
 				nStatus = 0;
 			}
 			//Set SPI1 D0 to GPIO mode
@@ -2726,7 +2727,7 @@ static long bitmain_asic_ioctl(struct file *file,
 			copy_to_user((unsigned char*)arg, (unsigned char*)&nStatus, sizeof(unsigned int));
 			break;
 		default:
-			printk("IOCTL cmd not surpport{%#x}{%d}\n", cmd,_IOC_NR(cmd));
+			printk_ratelimited("IOCTL cmd not surpport{%#x}{%d}\n", cmd,_IOC_NR(cmd));
 			return	-ENOTTY;
 	}
 	if(nStatus == 0)
@@ -2759,7 +2760,7 @@ static int __init bitmain_asic_init(void)
 	struct ASIC_TASK  asic_task;
 	int err;
 	uint32_t nonce;
-	printk(KERN_ERR "compile %s--%s\n", __DATE__,__TIME__);
+	printk_ratelimited(KERN_ERR "compile %s--%s\n", __DATE__,__TIME__);
 	spi_init();
 	asic_task.work_id = 0xffffffff;
 	err = hex2bin(asic_task.midstate, g_midstate, sizeof(asic_task.midstate));
@@ -2770,26 +2771,26 @@ static int __init bitmain_asic_init(void)
 	rev(asic_task.data, sizeof(asic_task.data));
 	rev((uint8_t*)&nonce, sizeof(nonce));
 	/*
-	printk("send midstate\n");
+	printk_ratelimited("send midstate\n");
 	dump_hex(asic_task.midstate,sizeof(asic_task.midstate));
-	printk("send data\n");
+	printk_ratelimited("send data\n");
 	dump_hex(asic_task.data,sizeof(asic_task.data));
 	*/
 	#if 0
-	printk("nonce-->{%#x}\n", nonce);
-	printk("nonce-->\n");
+	printk_ratelimited("nonce-->{%#x}\n", nonce);
+	printk_ratelimited("nonce-->\n");
 	u8p = &nonce;
 	for(i = 0; i < sizeof(nonce); i++)
 	{
-		printk("{%d}{%#x}, ", i, u8p[i]);
+		printk_ratelimited("{%d}{%#x}, ", i, u8p[i]);
 		if(0 == (i%16))
-			printk("\n");
+			printk_ratelimited("\n");
 	}
 	#endif
 	if(hashtest(&asic_task, nonce))
-		printk("hashtest OK\n");
+		printk_ratelimited("hashtest OK\n");
 	else
-		printk("hashtest Error!!!!!!!!!!\n");
+		printk_ratelimited("hashtest Error!!!!!!!!!!\n");
 	#if 0
 	BT_AS_INFO dev = &bitmain_asic_dev;
 	memset(dev, 0, sizeof(bitmain_asic_dev));
@@ -2805,13 +2806,13 @@ static int __init bitmain_asic_init(void)
 	add_timer(&prnt_timer);
 	writel(0xffffffff, dev->virt_addr + GENERAL_TIMER_RELOAD );
 	if (request_irq(TIMER_INTERRUPT, btmain_asic_interrupt, NULL, DRV_NAME, NULL)) {
-		printk(KERN_WARNING "%s: unable to allocate interrupt.",
+		printk_ratelimited(KERN_WARNING "%s: unable to allocate interrupt.",
 			DRV_NAME);
 		goto out1;
 	}
 
 	if (misc_register(&bitmain_asic)) {
-		printk(KERN_ERR "%s: failed to register device\n",
+		printk_ratelimited(KERN_ERR "%s: failed to register device\n",
 		       DRV_NAME);
 		goto out2;
 	}
@@ -2820,7 +2821,7 @@ static int __init bitmain_asic_init(void)
 	/* Init work for send data using usb */
 	INIT_WORK(&dev->usb_sdata_work, bitmain_usb_sdata);
 	INIT_DELAYED_WORK(&dev->usb_rdata_work, bitmain_usb_rdata);
-	printk("bitmain_asic_init ok\n");
+	printk_ratelimited("bitmain_asic_init ok\n");
 	return 0;
 
 out2:
@@ -2829,13 +2830,13 @@ out1:
 	return -1;
 	#endif
 	if (misc_register(&bitmain_asic)) {
-	printk(KERN_ERR "%s: failed to register device\n",
+	printk_ratelimited(KERN_ERR "%s: failed to register device\n",
 	       DRV_NAME);
 	return -1;
 	}
 	else
 	{
-		printk(KERN_ERR "%s: success to register device\n",
+		printk_ratelimited(KERN_ERR "%s: success to register device\n",
 	       DRV_NAME);
 		return 0;
 	}
@@ -2853,7 +2854,7 @@ static void __exit bitmain_asic_exit(void)
 	#endif
 	spi_close();
 	misc_deregister(&bitmain_asic);
-	printk(KERN_ERR "%s: success to unregister device\n", DRV_NAME);
+	printk_ratelimited(KERN_ERR "%s: success to unregister device\n", DRV_NAME);
 }
 module_exit(bitmain_asic_exit);
 

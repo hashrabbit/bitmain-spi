@@ -2771,65 +2771,11 @@ static int __init bitmain_asic_init(void)
 	rev(asic_task.midstate, sizeof(asic_task.midstate));
 	rev(asic_task.data, sizeof(asic_task.data));
 	rev((uint8_t*)&nonce, sizeof(nonce));
-	/*
-	printk_ratelimited("send midstate\n");
-	dump_hex(asic_task.midstate,sizeof(asic_task.midstate));
-	printk_ratelimited("send data\n");
-	dump_hex(asic_task.data,sizeof(asic_task.data));
-	*/
-	#if 0
-	printk_ratelimited("nonce-->{%#x}\n", nonce);
-	printk_ratelimited("nonce-->\n");
-	u8p = &nonce;
-	for(i = 0; i < sizeof(nonce); i++)
-	{
-		printk_ratelimited("{%d}{%#x}, ", i, u8p[i]);
-		if(0 == (i%16))
-			printk_ratelimited("\n");
-	}
-	#endif
 	if(hashtest(&asic_task, nonce))
 		printk_ratelimited("hashtest OK\n");
 	else
 		printk_ratelimited("hashtest Error!!!!!!!!!!\n");
-	#if 0
-	BT_AS_INFO dev = &bitmain_asic_dev;
-	memset(dev, 0, sizeof(bitmain_asic_dev));
-	dev->virt_addr = ioremap_nocache(RESET_BASE, RESET_SIZE);
-	dev->task_buffer_size = TASK_BUFFER_NUMBER;
-	dev->task_buffer = (ASIC_TASK_P)kmalloc(sizeof(*dev->task_buffer)*dev->task_buffer_size, GFP_KERNEL);
-	//dev->task_buffer_wr = 10;
 
-	mutex_init(&dev->result_lock);
-	init_timer(&prnt_timer);
-	prnt_timer.function = Prnt;
-	prnt_timer.expires = jiffies + 500*HZ/1000;
-	add_timer(&prnt_timer);
-	writel(0xffffffff, dev->virt_addr + GENERAL_TIMER_RELOAD );
-	if (request_irq(TIMER_INTERRUPT, btmain_asic_interrupt, NULL, DRV_NAME, NULL)) {
-		printk_ratelimited(KERN_WARNING "%s: unable to allocate interrupt.",
-			DRV_NAME);
-		goto out1;
-	}
-
-	if (misc_register(&bitmain_asic)) {
-		printk_ratelimited(KERN_ERR "%s: failed to register device\n",
-		       DRV_NAME);
-		goto out2;
-	}
-
-	dev->usb_wq = create_singlethread_workqueue(DRV_NAME);
-	/* Init work for send data using usb */
-	INIT_WORK(&dev->usb_sdata_work, bitmain_usb_sdata);
-	INIT_DELAYED_WORK(&dev->usb_rdata_work, bitmain_usb_rdata);
-	printk_ratelimited("bitmain_asic_init ok\n");
-	return 0;
-
-out2:
-	free_irq(TIMER_INTERRUPT, NULL);
-out1:
-	return -1;
-	#endif
 	if (misc_register(&bitmain_asic)) {
 	printk_ratelimited(KERN_ERR "%s: failed to register device\n",
 	       DRV_NAME);
@@ -2847,12 +2793,6 @@ module_init(bitmain_asic_init);
 
 static void __exit bitmain_asic_exit(void)
 {
-	#if 0
-	BT_AS_INFO dev = &bitmain_asic_dev;
-	kfree((void*)(dev->task_buffer));
-	misc_deregister(&bitmain_asic);
-	free_irq(TIMER_INTERRUPT, NULL);
-	#endif
 	spi_close();
 	misc_deregister(&bitmain_asic);
 	printk_ratelimited(KERN_ERR "%s: success to unregister device\n", DRV_NAME);

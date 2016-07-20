@@ -342,32 +342,6 @@ const char g_data[] = {"29a4001a4edce351072fb87f"};
 const char g_nonce[] = {"92ec9b6e"};
 #endif
 
-static void regen_hash(void)
-{
-	unsigned char full_data_hex[80];
-	uint32_t *data32 = (uint32_t *)full_data_hex;
-	unsigned char swap[80];
-	uint32_t *swap32 = (uint32_t *)swap;
-	unsigned char hash1[32];
-	uint32_t *hash2_32 = (uint32_t *)hash1;
-	unsigned char hash2[32];
-	//uint8_t i;
-	int err;
-	err = hex2bin(full_data_hex, g_full_data, sizeof(full_data_hex));
-	flip80(swap32, data32);
-	sha2(swap, 80, hash1);
-	/*
-	printk_ratelimited("hash1 in regen_hash\n");
-	dump_hex(hash1,sizeof(hash1));
-	*/
-	sha2(hash1, 32, hash2);
-	flip32(hash1, hash2);
-	if(be32toh(hash2_32[7]) == 0)
-		printk_ratelimited("hash ok\n");
-	else
-		printk_ratelimited("test hash error\n");
-}
-
 #define test_DHASH 0
 
 // Returns 1 if meets current buffer work, 0 if last buffer work
@@ -2771,8 +2745,6 @@ static int __init bitmain_asic_init(void)
 	hex2bin(asic_task.midstate, g_midstate, sizeof(asic_task.midstate));
 	hex2bin(asic_task.data, g_data, sizeof(asic_task.data));
 	hex2bin((uint8_t *)&nonce, g_nonce, sizeof(nonce));
-
-	regen_hash();
 
 	rev(asic_task.midstate, sizeof(asic_task.midstate));
 	rev(asic_task.data, sizeof(asic_task.data));

@@ -2794,8 +2794,8 @@ module_init(bitmain_asic_init);
 static void __exit bitmain_asic_exit(void)
 {
 	spi_close();
-	misc_deregister(&bitmain_asic);
-	printk_ratelimited(KERN_ERR "%s: success to unregister device\n", DRV_NAME);
+	if (misc_deregister(&bitmain_asic) < 0)
+		pr_err("%s: misc_deregister failed\n", DRV_NAME);
 }
 module_exit(bitmain_asic_exit);
 

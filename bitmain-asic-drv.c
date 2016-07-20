@@ -2478,18 +2478,17 @@ static ssize_t bitmain_asic_read(struct file *file, char __user *userbuf,
  * Handle commands from user-space.
  */
 
-typedef struct __FPGA_DATA
-{
+typedef struct __FPGA_DATA {
 	unsigned int data_len;
 	unsigned char *pdata;
 	unsigned int nStatus;
-}FPGA_DATA;
+} FPGA_DATA;
 
-#define FPGA_DL_IOC_MAGIC 	'p'
+#define FPGA_DL_IOC_MAGIC 'p'
 
-#define START_CONFIG	_IOWR(FPGA_DL_IOC_MAGIC, 0, unsigned int)
-#define CONFIG_DATA		_IOWR(FPGA_DL_IOC_MAGIC, 1, FPGA_DATA)
-#define CONFIG_DONE		_IOWR(FPGA_DL_IOC_MAGIC, 2, unsigned int)
+#define START_CONFIG  _IOWR(FPGA_DL_IOC_MAGIC, 0, unsigned int)
+#define CONFIG_DATA   _IOWR(FPGA_DL_IOC_MAGIC, 1, FPGA_DATA)
+#define CONFIG_DONE   _IOWR(FPGA_DL_IOC_MAGIC, 2, unsigned int)
 
 /***************************
 DCLK	 gpio2_6  gpio70	P8 45

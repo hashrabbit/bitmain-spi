@@ -911,7 +911,8 @@ extern int nonce_query(BT_AS_INFO dev)
 	{
 		//toctl = (dev->asic_configure.timeout_data * 1000000/ 40) - 1;
 		toctl = (dev->asic_configure.timeout_data*1000*9/10)  - 1;//1us
-		toctl += (0xffffffff/64/64/dev->asic_configure.frequency % 1000 *9 / 10);
+		if (dev->asic_configure.frequency > 0)
+			toctl += (0xffffffff/64/64/dev->asic_configure.frequency % 1000 *9 / 10);
 		printk_ratelimited(KERN_ERR "timeout {%#x}\n", toctl);
 		toctl |= (0x01<<31);
 		fpga_query.toctl = htonl(toctl);

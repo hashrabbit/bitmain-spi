@@ -2741,20 +2741,22 @@ static long bitmain_asic_ioctl(struct file *file,
 }
 
 #endif
-static const struct file_operations btasic_fops = {
-	.owner = THIS_MODULE,
-	.read = bitmain_asic_read,
-	.write = bitmain_asic_write,
-	.open = bitmain_asic_open,
-	.release = bitmain_asic_close,
+
+static const struct file_operations bitmain_asic_fops = {
+	.owner          = THIS_MODULE,
+	.read           = bitmain_asic_read,
+	.write          = bitmain_asic_write,
+	.open           = bitmain_asic_open,
+	.release        = bitmain_asic_close,
 	.unlocked_ioctl = bitmain_asic_ioctl,
 };
 
 static struct miscdevice bitmain_asic = {
-	MISC_DYNAMIC_MINOR,
-	DRV_NAME,
-	&btasic_fops
+	.minor = MISC_DYNAMIC_MINOR,
+	.name  = DRV_NAME,
+	.fops  = &bitmain_asic_fops,
 };
+
 static int __init bitmain_asic_init(void)
 {
 	struct ASIC_TASK  asic_task;

@@ -2758,36 +2758,36 @@ static struct miscdevice bitmain_asic = {
 
 static int __init bitmain_asic_init(void)
 {
-	struct ASIC_TASK  asic_task;
-	int err;
+	struct ASIC_TASK asic_task;
 	uint32_t nonce;
-	printk_ratelimited(KERN_ERR "compile %s--%s\n", __DATE__,__TIME__);
+
+	pr_info("%s v%s (built %s %s)\n", DRV_DESC, DRV_VERSION, __DATE__,
+		__TIME__);
+
 	spi_init();
+
 	asic_task.work_id = 0xffffffff;
-	err = hex2bin(asic_task.midstate, g_midstate, sizeof(asic_task.midstate));
-	err = hex2bin(asic_task.data, g_data, sizeof(asic_task.data));
-	err = hex2bin((uint8_t*)&nonce, g_nonce, sizeof(nonce));
+
+	hex2bin(asic_task.midstate, g_midstate, sizeof(asic_task.midstate));
+	hex2bin(asic_task.data, g_data, sizeof(asic_task.data));
+	hex2bin((uint8_t *)&nonce, g_nonce, sizeof(nonce));
+
 	regen_hash();
+
 	rev(asic_task.midstate, sizeof(asic_task.midstate));
 	rev(asic_task.data, sizeof(asic_task.data));
-	rev((uint8_t*)&nonce, sizeof(nonce));
-	if(hashtest(&asic_task, nonce))
-		printk_ratelimited("hashtest OK\n");
+	rev((uint8_t *)&nonce, sizeof(nonce));
+
+	if (hashtest(&asic_task, nonce))
+		pr_info("hashtest OK\n");
 	else
-		printk_ratelimited("hashtest Error!!!!!!!!!!\n");
+		pr_err("hashtest failed\n");
 
 	if (misc_register(&bitmain_asic)) {
-	printk_ratelimited(KERN_ERR "%s: failed to register device\n",
-	       DRV_NAME);
-	return -1;
+		pr_err("%s: misc_register failed\n", DRV_NAME);
+		return -1;
 	}
-	else
-	{
-		printk_ratelimited(KERN_ERR "%s: success to register device\n",
-	       DRV_NAME);
-		return 0;
-	}
-
+	return 0;
 }
 module_init(bitmain_asic_init);
 
